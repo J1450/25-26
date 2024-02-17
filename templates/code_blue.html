@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ResQ Carts</title>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js" integrity="sha512-bLT0Qm9VnAYZDflyKcBaQ2gg0hSYNQrJ8RilYldYQ1FxQYoCLtUjuuRuZo+fjqhx/qtq/1itJ0C2ejDxltZVFg==" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/3.0.4/socket.io.js" integrity="sha512-aMGMvNYu8Ue4G+fHa359jcPb1u+ytAF+P2SCb+PxrjCdO3n3ZTxJ30zuH39rimUggmTwmh2u7wvQsDTHESnmfQ==" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.1/chart.min.js"></script>
+    <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+    <link href="{{url_for('static', filename = 'css/app.css')}}" rel="stylesheet">
+  </head>
+  <body>
+    <script type="text/javascript" src="{{ url_for('static', filename = 'js/app.js') }}"></script>
+    <nav class="nav" tabindex="-1" onclick="this.focus()">
+      <div class="container">
+        <a class = "pagename" href="https://www.justinlam.org/">www.justinlam.org</a>
+      </div>
+    </nav>
+    <div class="rowcontainer">
+      <div class="column">
+        <h2>Nurse 1</h2>
+        <div class="progress-container">
+          <div class="progress-bar" style="height: 50%;"></div>
+        </div>
+        <div class="text-box" id="text-line-1">
+          <p id="task1">{{ tasks[1]['person1']['task'] }}</p>
+          <p id="status1">Status: {{ tasks[1]['person1']['status'] }}</p>
+          <p id="stopwatchTimer"></p>
+        </div>
+        <button class = "button" id = "update_person1">Complete</button>
+      </div>
+      <div class="column">
+        <h2>Nurse 2</h2>
+        <div class="progress-container">
+          <div class="progress-bar" style="height: 75%;"></div>
+        </div>
+        <button class = "button" id="changeled_1">Turn Off or On Pin 5</button>
+      </div>
+      <div class="column">
+        <h2>Code Captain</h2>
+        <div class="progress-container">
+          <div class="progress-bar" style="height: 75%;"></div>
+        </div>
+        <button class = "button" id="changeled_2">Turn Off or On Pin 6</button>
+      </div>
+    </div>
+    <div class="bottom-row">
+      <p class="bottom-text">Total Elapsed Time:</p>
+      <div class="bottom-box">
+        <div class = "timer">
+          <p id="runningTimer"></p>
+        </div>
+      </div>
+      <button class = "button" id="printPDF" type="submit" onclick="window.open('/generate_pdf')" style = "float:right;">Upload to EMR</button>
+    </div>
+  </body>
+</html>
