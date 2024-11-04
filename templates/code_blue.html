@@ -13,47 +13,60 @@
   </head>
   <body>
     <script type="text/javascript" src="{{ url_for('static', filename = 'js/app.js') }}"></script>
-    <nav class="nav" tabindex="-1" onclick="this.focus()">
-      <div class="container">
-        <a class = "pagename" href="https://www.justinlam.org/">www.justinlam.org</a>
+    <div class = "headercontainer">
+      <button class = "close" id = "close_window">Exit</button>
+      <div class = "timer">
+        <p id="runningTimer"></p>
       </div>
-    </nav>
+      <button class = "button" id="printPDF" type="submit" onclick="window.open('/generate_pdf')" style = "float:right;">Upload to EMR</button>
+    </div>
     <div class="rowcontainer">
       <div class="column">
-        <h2>Nurse 1</h2>
+        <button class = "undo" id = "undo_person1">Undo</button>
+        <h2>Compressions</h2>
         <div class="progress-container">
-          <div class="progress-bar" style="height: 50%;"></div>
+          <div class="progress-bar" id = "progress-bar1" style="width: 50%;"></div>
         </div>
         <div class="text-box" id="text-line-1">
           <p id="task1">{{ tasks[1]['person1']['task'] }}</p>
           <p id="status1">Status: {{ tasks[1]['person1']['status'] }}</p>
-          <p id="stopwatchTimer"></p>
+          <p id="stopwatchTimer1"></p>
         </div>
-        <button class = "button" id = "update_person1">Complete</button>
+        <button class = "update" id = "update_person1">Complete</button>
       </div>
       <div class="column">
-        <h2>Nurse 2</h2>
+        <button class = "undo" id = "undo_person2">Undo</button>
+        <h2>Airways</h2>
         <div class="progress-container">
-          <div class="progress-bar" style="height: 75%;"></div>
+          <div class="progress-bar" id = "progress-bar2" style="width: 50%;"></div>
         </div>
-        <button class = "button" id="changeled_1">Turn Off or On Pin 5</button>
+        <div class="text-box" id="text-line-1">
+          <p id="task2">{{ tasks[1]['person2']['task'] }}</p>
+          <p id="status2">Status: {{ tasks[1]['person2']['status'] }}</p>
+          <p id="stopwatchTimer2"></p>
+        </div>
+        <button class = "update" id = "update_person2">Complete</button>
       </div>
       <div class="column">
-        <h2>Code Captain</h2>
+        <button class = "undo" id = "undo_person3">Undo</button>
+        <h2>Medications</h2>
         <div class="progress-container">
-          <div class="progress-bar" style="height: 75%;"></div>
+          <div class="progress-bar" id = "progress-bar3" style="width: 75%;"></div>
         </div>
-        <button class = "button" id="changeled_2">Turn Off or On Pin 6</button>
+        <div class="text-box" id="text-line-1">
+          <p id="task3">{{ tasks[1]['person3']['task'] }}</p>
+          <p id="status3">Status: {{ tasks[1]['person3']['status'] }}</p>
+          <p id="stopwatchTimer3"></p>
+        </div>
+        <button class = "update" id = "update_person3">Complete</button>
       </div>
     </div>
-    <div class="bottom-row">
-      <p class="bottom-text">Total Elapsed Time:</p>
-      <div class="bottom-box">
-        <div class = "timer">
-          <p id="runningTimer"></p>
-        </div>
-      </div>
-      <button class = "button" id="printPDF" type="submit" onclick="window.open('/generate_pdf')" style = "float:right;">Upload to EMR</button>
+    <div class = "rowcontainer">
+      <ul>
+        <li>Medical History: CHF, DM, Chronic Renal Insufficiency, developed shortness of breath, presented with symptoms of MI and then dysrhythmias in ER</li>
+        <li>vital signs: BP 94/48, pulse 104, resp 28, on antibiotics,</li>
+        <li>Found unresponsive; Monitor shows ventricular fib</li>
+      </ul>
     </div>
   </body>
 </html>
