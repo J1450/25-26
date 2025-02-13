@@ -9,7 +9,7 @@ import weasyprint
 import serial
 import webview
 
-arduino = serial.Serial( "COM3", 9600, timeout=0)
+arduino = serial.Serial( "COM8", 9600, timeout=0)
 
 ''' 
 My variables
