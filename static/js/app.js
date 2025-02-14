@@ -1,200 +1,76 @@
 $(document).ready(function () {
+  const people = ['person1', 'person2', 'person3'];
+
   $('#startCode').on('click', function() {
-    window.location.href = '/start_code'
-   
-    $.ajax({
-      type: 'POST',
-      url: '/change_led',
-      data: { person: "person1"},
-      success: function(response) {
-          console.log(response);
-      }
-    });
+    window.location.href = '/start_code';
 
-    $.ajax({
-      type: 'POST',
-      url: '/change_led',
-      data: { person: "person2"},
-      success: function(response) {
-          console.log(response);
-      }
-    });
-
-    $.ajax({
-      type: 'POST',
-      url: '/change_led',
-      data: { person: "person3"},
-      success: function(response) {
-          console.log(response);
-      }
+    people.forEach(function(person) {
+        $.ajax({
+            type: 'POST',
+            url: '/change_led',
+            data: { person: person },
+            success: function(response) {
+                console.log(response);
+            }
+        });
     });
   });
 
-  $.ajax({
-    type: 'POST',
-    url: '/obtain_status', // Your Flask endpoint to handle recording
-    data: { person : 'person1'},
-    success: function(response) {
-        //var elem = document.getElementById("stopwatchTimer1")
-        //elem.innerHTML=50;
-        var timerId; // declare timerId outside of the stopwatch function
-        var startTimeStamp; // declare startTimeStamp outside of the stopwatch function
-        var timerInSeconds = response.time;
-        function stopwatch(duration) {
-          startTimeStamp = new Date().getTime();
-          var oldTask = $('#task1').text();
-
-          function updateTimer() {
-            if (oldTask != $('#task1').text()) {
-              clearInterval(timerId);
-            }
-
-            var currentTimeStamp = new Date().getTime();
-            var elapsedSeconds = Math.floor((currentTimeStamp - startTimeStamp) / 1000);
-            var remainingSeconds = Math.max(duration - elapsedSeconds, 0);
-            
-            var elem = document.getElementById('stopwatchTimer1');
-            elem.innerHTML = remainingSeconds;
-
-            var percentTime = (remainingSeconds/(elapsedSeconds + remainingSeconds)) * 100;
-
-            $('#progress-bar1').css({
-              width: percentTime + '%'
-            });
-
-            if (percentTime < 50) {
-              document.getElementById('#progress-bar1').style.backgroundColor = 'yellow'
-            }
-
-            if (percentTime < 20) {
-              document.getElementById('#progress-bar1').style.backgroundColor = 'red'
-            }
-
-
-            if (remainingSeconds === 0) {
-              clearInterval(timerId);
-              elem.innerHTML = "Please Complete Activity";
-            }
+  people.forEach(function(person, index) {
+      $.ajax({
+          type: 'POST',
+          url: '/obtain_status',
+          data: { person: person },
+          success: function(response) {
+              startStopwatch(response.time, index + 1);
           }
-
-          clearInterval(timerId); // Clear any existing intervals
-          updateTimer(); // Call it once to initialize display
-          timerId = setInterval(updateTimer, 50);
-        }
-        
-        stopwatch(timerInSeconds);  
-    }
+      });
   });
 
-  $.ajax({
-    type: 'POST',
-    url: '/obtain_status', // Your Flask endpoint to handle recording
-    data: { person : 'person2'},
-    success: function(response) {
-        //var elem = document.getElementById("stopwatchTimer1")
-        //elem.innerHTML=50;
-        var timerId; // declare timerId outside of the stopwatch function
-        var startTimeStamp; // declare startTimeStamp outside of the stopwatch function
-        var timerInSeconds = response.time;
-        function stopwatch(duration) {
-          startTimeStamp = new Date().getTime();
-          var oldTask = $('#task2').text();
+  function startStopwatch(duration, taskNumber) {
+    var timerId; 
+    var startTimeStamp;
+    var timerInSeconds = duration;
 
-          function updateTimer() {
-            if (oldTask != $('#task2').text()) {
-              clearInterval(timerId);
-            }
+    startTimeStamp = new Date().getTime();
+    var oldTask = $('#task' + taskNumber).text();
 
-            var currentTimeStamp = new Date().getTime();
-            var elapsedSeconds = Math.floor((currentTimeStamp - startTimeStamp) / 1000);
-            var remainingSeconds = Math.max(duration - elapsedSeconds, 0);
-            
-            var elem = document.getElementById('stopwatchTimer2');
-            elem.innerHTML = remainingSeconds;
-
-            var percentTime = (remainingSeconds/(elapsedSeconds + remainingSeconds)) * 100;
-
-            $('#progress-bar2').css({
-              width: percentTime + '%'
-            });
-
-            if (percentTime < 50) {
-              document.getElementById('#progress-bar2').style.backgroundColor = 'yellow'
-            }
-
-            if (percentTime < 20) {
-              document.getElementById('#progress-bar2').style.backgroundColor = 'red'
-            }            
-
-            if (remainingSeconds === 0) {
-              clearInterval(timerId);
-              elem.innerHTML = "Please Complete Activity";
-            }
-          }
-
-          clearInterval(timerId); // Clear any existing intervals
-          updateTimer(); // Call it once to initialize display
-          timerId = setInterval(updateTimer, 50);
+    function updateTimer() {
+        if (oldTask != $('#task' + taskNumber).text()) {
+            clearInterval(timerId);
         }
-        
-        stopwatch(timerInSeconds);  
-    }
-  });
 
-  $.ajax({
-    type: 'POST',
-    url: '/obtain_status', // Your Flask endpoint to handle recording
-    data: { person : 'person3'},
-    success: function(response) {
-        //var elem = document.getElementById("stopwatchTimer1")
-        //elem.innerHTML=50;
-        var timerId; // declare timerId outside of the stopwatch function
-        var startTimeStamp; // declare startTimeStamp outside of the stopwatch function
-        var timerInSeconds = response.time;
-        function stopwatch(duration) {
-          startTimeStamp = new Date().getTime();
-          var oldTask = $('#task3').text();
+        var currentTimeStamp = new Date().getTime();
+        var elapsedSeconds = Math.floor((currentTimeStamp - startTimeStamp) / 1000);
+        var remainingSeconds = Math.max(duration - elapsedSeconds, 0);
 
-          function updateTimer() {
-            if (oldTask != $('#task3').text()) {
-              clearInterval(timerId);
-            }
+        var elem = document.getElementById('stopwatchTimer' + taskNumber);
+        elem.innerHTML = remainingSeconds;
 
-            var currentTimeStamp = new Date().getTime();
-            var elapsedSeconds = Math.floor((currentTimeStamp - startTimeStamp) / 1000);
-            var remainingSeconds = Math.max(duration - elapsedSeconds, 0);
-            
-            var elem = document.getElementById('stopwatchTimer3');
-            elem.innerHTML = remainingSeconds;
+        var percentTime = (remainingSeconds / (elapsedSeconds + remainingSeconds)) * 100;
 
-            var percentTime = (remainingSeconds/(elapsedSeconds + remainingSeconds)) * 100;
+        $('#progress-bar' + taskNumber).css({
+            width: percentTime + '%'
+        });
 
-            $('#progress-bar3').css({
-              width: percentTime + '%'
-            });
-
-            if (percentTime < 50) {
-              document.getElementById('#progress-bar3').style.backgroundColor = 'yellow'
-            }
-
-            if (percentTime < 20) {
-              document.getElementById('#progress-bar3').style.backgroundColor = 'red'
-            }
-
-            if (remainingSeconds === 0) {
-              clearInterval(timerId);
-              elem.innerHTML = "Please Complete Activity";
-            }
-          }
-
-          clearInterval(timerId); // Clear any existing intervals
-          updateTimer(); // Call it once to initialize display
-          timerId = setInterval(updateTimer, 50);
+        if (percentTime < 50) {
+            document.getElementById('progress-bar' + taskNumber).style.backgroundColor = 'yellow';
         }
-        
-        stopwatch(timerInSeconds);  
+
+        if (percentTime < 20) {
+            document.getElementById('progress-bar' + taskNumber).style.backgroundColor = 'red';
+        }
+
+        if (remainingSeconds === 0) {
+            clearInterval(timerId);
+            elem.innerHTML = "Please Complete Activity";
+        }
     }
-  });
+
+    clearInterval(timerId);
+    updateTimer();
+    timerId = setInterval(updateTimer, 50);
+  }
 
 
   $('#recordInteraction').on('click', function() {
