@@ -1,14 +1,15 @@
 $(document).ready(function () {
-  const people = ['person1', 'person2', 'person3'];
+  const scenario = [0, 1, 2];
+  const categories = ['Medications','Compressions','Airways'];
 
   $('#startCode').on('click', function() {
     window.location.href = '/start_code';
 
-    people.forEach(function(person) {
+    categories.forEach(function(category) {
         $.ajax({
             type: 'POST',
             url: '/change_led',
-            data: { person: person },
+            data: { category: category },
             success: function(response) {
                 console.log(response);
             }
@@ -16,11 +17,11 @@ $(document).ready(function () {
     });
   });
 
-  people.forEach(function(person, index) {
+  categories.forEach(function(category, index) {
       $.ajax({
           type: 'POST',
           url: '/obtain_status',
-          data: { person: person },
+          data: { category: category },
           success: function(response) {
               startStopwatch(response.time, index + 1);
           }
