@@ -1,358 +1,347 @@
 $(document).ready(function () {
-  const scenario = [0, 1, 2];
-  const categories = ['Medications','Compressions','Airways'];
+  let currentScenario = 0;  // Start with scenario 0
+  const categories = ['Medications', 'Compressions', 'Airways'];
+
+  // Debug logging
+  function logError(error) {
+    console.error('Error:', error);
+  }
+
+  function logInfo(message) {
+    console.log('Info:', message);
+  }
 
   $('#startCode').on('click', function() {
     window.location.href = '/start_code';
-
-    categories.forEach(function(category) {
-        $.ajax({
-            type: 'POST',
-            url: '/change_led',
-            data: { category: category },
-            success: function(response) {
-                console.log(response);
-            }
-        });
-    });
   });
 
-  categories.forEach(function(category, index) {
-      $.ajax({
-          type: 'POST',
-          url: '/obtain_status',
-          data: { category: category },
-          success: function(response) {
-              startStopwatch(response.time, index + 1);
-          }
+  // Task Management
+  class TaskManager {
+    constructor() {
+      this.currentScenario = currentScenario;
+      this.taskCounts = {};
+      this.initializeTasks();
+      this.setupScenarioControls();
+    }
+
+    setupScenarioControls() {
+      // Add scenario controls to the UI
+      const headerContainer = document.querySelector('.headercontainer');
+      if (headerContainer) {
+        const scenarioControl = document.createElement('div');
+        scenarioControl.className = 'scenario-control';
+        scenarioControl.innerHTML = `
+          <label>Scenario: </label>
+          <select id="scenario-selector">
+            <option value="0">Asystole</option>
+            <option value="1">Ventricular Fibrillation</option>
+            <option value="2">Normal Sinus</option>
+          </select>
+        `;
+        headerContainer.insertBefore(scenarioControl, headerContainer.firstChild);
+
+        // Add event listener for scenario changes
+        const selector = document.getElementById('scenario-selector');
+        selector.addEventListener('change', (e) => {
+          currentScenario = parseInt(e.target.value);
+          this.loadScenario(currentScenario);
+        });
+      }
+    }
+
+    loadScenario(scenarioNumber) {
+      this.currentScenario = scenarioNumber;
+      logInfo(`Loading scenario ${scenarioNumber}`);
+      
+      // Reset all progress and clear tasks
+      categories.forEach(category => {
+        const container = document.getElementById(`${category.toLowerCase()}-tasks`);
+        if (container) {
+          container.innerHTML = ''; // Clear existing tasks
+        }
+        this.taskCounts[category] = {
+          completed: 0,
+          total: 0,
+          tasks: []
+        };
+        this.updateProgressBar(category);
       });
-  });
 
-  function startStopwatch(duration, taskNumber) {
-    var timerId; 
-    var startTimeStamp;
-    var timerInSeconds = duration;
+      // Load new tasks for the scenario
+      $.ajax({
+        url: '/obtain_status',
+        type: 'POST',
+        data: {
+          scenario: scenarioNumber,
+          category: 'all'
+        },
+        success: (response) => {
+          logInfo('Received scenario data:', response);
+          if (response.success && response.tasks) {
+            categories.forEach(category => {
+              const container = document.getElementById(`${category.toLowerCase()}-tasks`);
+              if (container && response.tasks[category]) {
+                const categoryTasks = response.tasks[category].steps;
+                // Add new tasks
+                categoryTasks.forEach(task => {
+                  const taskElement = document.createElement('div');
+                  taskElement.className = 'task-item';
+                  taskElement.textContent = task[0];
+                  taskElement.dataset.step = task[1];
+                  container.appendChild(taskElement);
+                });
+                // Reinitialize task tracking
+                this.initializeCategory(category);
+              }
+            });
 
-    startTimeStamp = new Date().getTime();
-    var oldTask = $('#task' + taskNumber).text();
-
-    function updateTimer() {
-        if (oldTask != $('#task' + taskNumber).text()) {
-            clearInterval(timerId);
+            // Reattach event listeners for all buttons
+            this.reattachEventListeners();
+          } else {
+            logError('Failed to load scenario tasks:', response.message);
+          }
+        },
+        error: (error) => {
+          logError('Failed to load scenario:', error);
         }
-
-        var currentTimeStamp = new Date().getTime();
-        var elapsedSeconds = Math.floor((currentTimeStamp - startTimeStamp) / 1000);
-        var remainingSeconds = Math.max(duration - elapsedSeconds, 0);
-
-        var elem = document.getElementById('stopwatchTimer' + taskNumber);
-        elem.innerHTML = remainingSeconds;
-
-        var percentTime = (remainingSeconds / (elapsedSeconds + remainingSeconds)) * 100;
-
-        $('#progress-bar' + taskNumber).css({
-            width: percentTime + '%'
-        });
-
-        if (percentTime < 50) {
-            document.getElementById('progress-bar' + taskNumber).style.backgroundColor = 'yellow';
-        }
-
-        if (percentTime < 20) {
-            document.getElementById('progress-bar' + taskNumber).style.backgroundColor = 'red';
-        }
-
-        if (remainingSeconds === 0) {
-            clearInterval(timerId);
-            elem.innerHTML = "Please Complete Activity";
-        }
+      });
     }
 
-    clearInterval(timerId);
-    updateTimer();
-    timerId = setInterval(updateTimer, 50);
-  }
+    initializeCategory(category) {
+      const container = document.getElementById(`${category.toLowerCase()}-tasks`);
+      if (container) {
+        const tasks = container.getElementsByClassName('task-item');
+        this.taskCounts[category] = {
+          total: tasks.length,
+          completed: 0,
+          tasks: Array.from(tasks).map(task => ({
+            element: task,
+            completed: false
+          }))
+        };
+        logInfo(`Initialized ${category} with ${tasks.length} tasks`);
+        this.updateProgressBar(category);
+      }
+    }
 
+    initializeTasks() {
+      categories.forEach(category => this.initializeCategory(category));
+    }
 
-  $('#recordInteraction').on('click', function() {
-    var timestamp = new Date().toLocaleString(); // Get current timestamp
-    var id= this.id;
-    var text = $('#task' + id.slice(-1)).text();
-    $.ajax({
-        type: 'POST',
-        url: '/record_interaction', // Your Flask endpoint to handle recording
-        data: { text : text, timestamp: timestamp, id : id },
-        success: function(response) {
-            console.log('Interaction recorded successfully!');
-        },
-        error: function(error) {
-            console.error('Error recording interaction:', error);
+    updateProgressBar(category) {
+      const progressBar = document.getElementById(`progress-bar-${category.toLowerCase()}`);
+      if (progressBar && this.taskCounts[category]) {
+        const progress = (this.taskCounts[category].completed / this.taskCounts[category].total) * 100;
+        progressBar.style.width = `${progress}%`;
+        
+        // Update color based on new thresholds
+        if (progress < 34) {
+          progressBar.style.backgroundColor = '#ff4444';  // Red
+        } else if (progress < 67) {
+          progressBar.style.backgroundColor = '#ffeb3b';  // Yellow
+        } else {
+          progressBar.style.backgroundColor = '#4CAF50';  // Green
         }
-    });
-  });
+        
+        logInfo(`Updated progress for ${category}: ${progress}%`);
+      }
+    }
 
-  $('#printPDF').on('click', function() {
-    $.ajax({
-        type: 'GET',
-        url: '/generate_pdf', // Your Flask endpoint to handle recording
-        success: function(response) {
-            console.log('Interaction recorded successfully!');
-        },
-        error: function(error) {
-            console.error('Error recording interaction:', error);
-        }
-    });
-  });
-
-  $('button[id^="update_"]').on('click', function() {
-    var person = $(this).attr('id').split('_')[1]; // Extract person name from button ID
-    $.ajax({
-        type: 'POST',
-        url: '/update_status',
-        data: { person: person, status: 'complete' },
-        success: function(response) {
-            console.log('Status updated successfully for ' + person + '!');
-            var updatedStatus = response.updatedStatus;
-            var text = $('#task' + person.slice(-1)).text();
-            $('#status' + person.slice(-1)).text('Status: ' + updatedStatus);
-            $('#task' + person.slice(-1)).text('Task Completed');
-            var timestamp = new Date().toLocaleString(); // Get current timestamp
-            $.ajax({
-              type: 'POST',
-              url: '/record_interaction', // Your Flask endpoint to handle recording
-              data: { text : text, timestamp: timestamp , person : person},
-              success: function(response) {
-                  console.log('Interaction recorded successfully!');
-              },
-              error: function(error) {
-                  console.error('Error recording interaction:', error);
-              }
-            });
-            
-            var newStep = response.newStep;
-            var newStatus = response.newStatus;
-            var timerInSeconds = response.newTime;
-            $('#status' + person.slice(-1)).text('Status: ' + newStatus);
-            $('#task' + person.slice(-1)).text(newStep);
-
-            var timerId; // declare timerId outside of the stopwatch function
-            var startTimeStamp; // declare startTimeStamp outside of the stopwatch function
-
-            function stopwatch(duration) {
-              startTimeStamp = new Date().getTime();
-              var oldTask = $('#task' + person.slice(-1)).text();
-
-              function updateTimer() {
-                if (oldTask != $('#task' + person.slice(-1)).text()) {
-                  clearInterval(timerId);
-                }
-
-                var currentTimeStamp = new Date().getTime();
-                var elapsedSeconds = Math.floor((currentTimeStamp - startTimeStamp) / 1000);
-                var remainingSeconds = Math.max(duration - elapsedSeconds, 0);
-                
-                var elem = document.getElementById('stopwatchTimer' + person.slice(-1));
-                elem.innerHTML = remainingSeconds;
-
-                var percentTime = (remainingSeconds/(elapsedSeconds + remainingSeconds)) * 100;
-
-                $('#progress-bar' + person.slice(-1)).css({
-                  width: percentTime + '%'
-                });
-
-                if (percentTime < 50) {
-                  document.getElementById('#progress-bar' + person.slice(-1)).style.backgroundColor = 'yellow'
-                }
-
-                if (percentTime < 20) {
-                  document.getElementById('#progress-bar' + person.slice(-1)).style.backgroundColor = 'red'
-                }
-
-                if (remainingSeconds === 0) {
-                  clearInterval(timerId);
-                  elem.innerHTML = "Please Complete Activity";
-                }
-              }
-
-              clearInterval(timerId); // Clear any existing intervals
-              updateTimer(); // Call it once to initialize display
-              timerId = setInterval(updateTimer, 50);
-            }
-            
-            stopwatch(timerInSeconds); 
-
-            $.ajax({
-              type: 'POST',
-              url: '/turn_off_led',
-              data: { person: person},
-              success: function(response) {
-                console.log(response);
-                setTimeout(function(){
-                  $.ajax({
-                    type: 'POST',
-                    url: '/change_led',
-                    data: { person: person },
-                    success: function(response) {
-                        console.log(response);
-                    }
-                  });          
-                },3000)
-              }
-            });
-        },
-        error: function(error) {
-            console.error('Error updating status for ' + person + '!', error);
-        }    
-    });
-  });
-
-  $('button[id^="undo_"]').on('click', function() {
-    var person = $(this).attr('id').split('_')[1]; // Extract person name from button ID
-    $.ajax({
-        type: 'POST',
-        url: '/undo_step',
-        data: { person: person, status: 'complete' },
-        success: function(response) {
-            console.log('Status updated successfully for ' + person + '!');
-            var updatedStatus = response.updatedStatus;
-            var text = $('#task' + person.slice(-1)).text();
-            $('#status' + person.slice(-1)).text('Status: ' + updatedStatus);
-            $('#task' + person.slice(-1)).text('Task Completed');
-            var timestamp = new Date().toLocaleString(); // Get current timestamp
-            $.ajax({
-              type: 'POST',
-              url: '/record_interaction', // Your Flask endpoint to handle recording
-              data: { text : text, timestamp: timestamp },
-              success: function(response) {
-                  console.log('Interaction recorded successfully!');
-              },
-              error: function(error) {
-                  console.error('Error recording interaction:', error);
-              }
-            });
-            
-            var newStep = response.newStep;
-            var newStatus = response.newStatus;
-            var timerInSeconds = response.newTime;
-            $('#status' + person.slice(-1)).text('Status: ' + newStatus);
-            $('#task' + person.slice(-1)).text(newStep);
-
-            var timerId; // declare timerId outside of the stopwatch function
-            var startTimeStamp; // declare startTimeStamp outside of the stopwatch function
-
-            function stopwatch(duration) {
-              startTimeStamp = new Date().getTime();
-              var oldTask = $('#task' + person.slice(-1)).text();
-
-              function updateTimer() {
-                if (oldTask != $('#task' + person.slice(-1)).text()) {
-                  clearInterval(timerId);
-                }
-
-                var currentTimeStamp = new Date().getTime();
-                var elapsedSeconds = Math.floor((currentTimeStamp - startTimeStamp) / 1000);
-                var remainingSeconds = Math.max(duration - elapsedSeconds, 0);
-                
-                var elem = document.getElementById('stopwatchTimer' + person.slice(-1));
-                elem.innerHTML = remainingSeconds;
-
-                var percentTime = (remainingSeconds/(elapsedSeconds + remainingSeconds)) * 100;
-
-                $('#progress-bar' + person.slice(-1)).css({
-                  width: percentTime + '%'
-                });
-
-                if (remainingSeconds === 0) {
-                  clearInterval(timerId);
-                  elem.innerHTML = "Please Complete Activity";
-                }
-              }
-
-              clearInterval(timerId); // Clear any existing intervals
-              updateTimer(); // Call it once to initialize display
-              timerId = setInterval(updateTimer, 50);
-            }
-            
-            stopwatch(timerInSeconds);  
+    completeTask(category) {
+      const categoryData = this.taskCounts[category];
+      if (categoryData && categoryData.completed < categoryData.total) {
+        const nextTaskData = categoryData.tasks[categoryData.completed];
+        if (nextTaskData && !nextTaskData.completed) {
+          // Mark task as completed
+          nextTaskData.completed = true;
+          nextTaskData.element.classList.add('completed');
           
-            $.ajax({
-              type: 'POST',
-              url: '/turn_off_led_undo',
-              data: { person: "person1"},
-              success: function(response) {
-                console.log(response);
-                setTimeout(function(){
-                  $.ajax({
-                    type: 'POST',
-                    url: '/change_led',
-                    data: { person: person },
-                    success: function(response) {
-                        console.log(response);
-                    }
-                  });          
-                },3000)
-              }
-            });
+          // Visual feedback
+          nextTaskData.element.style.backgroundColor = '#e8f5e9';
+          nextTaskData.element.style.borderColor = '#81c784';
+          nextTaskData.element.style.color = '#2e7d32';
+          
+          // Update counts and progress
+          categoryData.completed++;
+          this.updateProgressBar(category);
+          
+          logInfo(`Completed task ${categoryData.completed} in ${category}`);
+          return true;
+        }
+      }
+      return false;
+    }
+
+    undoTask(category) {
+      const categoryData = this.taskCounts[category];
+      if (categoryData && categoryData.completed > 0) {
+        const lastTaskData = categoryData.tasks[categoryData.completed - 1];
+        if (lastTaskData && lastTaskData.completed) {
+          // Mark task as incomplete
+          lastTaskData.completed = false;
+          lastTaskData.element.classList.remove('completed');
+          
+          // Reset visual style
+          lastTaskData.element.style.backgroundColor = '';
+          lastTaskData.element.style.borderColor = '';
+          lastTaskData.element.style.color = '';
+          
+          // Update counts and progress
+          categoryData.completed--;
+          this.updateProgressBar(category);
+          
+          // Record interaction
+          this.recordInteraction(category, `Undid: ${lastTaskData.element.textContent.trim()}`);
+          
+          logInfo(`Undid task ${categoryData.completed + 1} in ${category}`);
+          return true;
+        }
+      }
+      return false;
+    }
+
+    recordInteraction(category, text) {
+      const timestamp = new Date().toLocaleString();
+      $.ajax({
+        type: 'POST',
+        url: '/record_interaction',
+        data: { 
+          text: text,
+          timestamp: timestamp,
+          category: category
+        },
+        success: function(response) {
+          logInfo(`Recorded interaction for ${category}`);
         },
         error: function(error) {
-            console.error('Error updating status for ' + person + '!', error);
-        }    
-    });
-  });
-
-  $('button[id="close_window"]').on('click', function() {
-    var person = $(this).attr('id').split('_')[1]; // Extract person name from button ID
-    $.ajax({
-        type: 'POST',
-        url: '/close_window',
-        success: function(response) {
+          logError(`Failed to record interaction for ${category}`);
         }
-    });
-  });
-
-
-
-
-  var elem2 = document.getElementById('runningTimer');
-  var timeElapsedId = setInterval(runningTimer, 50);
-  var startTimeStamp = new Date().getTime();
-
-  function runningTimer() {
-    var currentTimeStamp = new Date().getTime();
-    var timeElapsed = Math.floor((currentTimeStamp - startTimeStamp)/1000);
-    var secondsElapsed = Math.floor(timeElapsed % 60);
-    var minutesElapsed = Math.floor(timeElapsed/60)%60;
-    var hoursElapsed = Math.floor(timeElapsed/3600)%24;
-
-    function convertToString (n){
-      return n > 9 ? "" + n: "0" + n;
+      });
     }
-    
-    var secondsElapsed = convertToString(secondsElapsed);
-    var minutesElapsed = convertToString(minutesElapsed);
-    var hoursElapsed = convertToString(hoursElapsed);
 
-    var newString = hoursElapsed + ":" + minutesElapsed + ":"+ secondsElapsed
-
-
-    elem2.innerHTML = newString;
+    reattachEventListeners() {
+      categories.forEach(category => {
+        const completeBtn = document.getElementById(`complete-${category.toLowerCase()}`);
+        const undoBtn = document.getElementById(`undo-${category.toLowerCase()}`);
+        
+        if (completeBtn) {
+          const newCompleteBtn = completeBtn.cloneNode(true);
+          completeBtn.parentNode.replaceChild(newCompleteBtn, completeBtn);
+          newCompleteBtn.addEventListener('click', () => handleTaskUpdate(category));
+        }
+        
+        if (undoBtn) {
+          const newUndoBtn = undoBtn.cloneNode(true);
+          undoBtn.parentNode.replaceChild(newUndoBtn, undoBtn);
+          newUndoBtn.addEventListener('click', () => handleTaskUndo(category));
+        }
+      });
+    }
   }
 
-  
+  // Initialize TaskManager when on code blue page
+  if (document.getElementById('medications-tasks')) {
+    const taskManager = new TaskManager();
 
-  runningTimer(timerInSeconds);
-
-  var socket = io.connect();
-
-  //receive details from server
-  socket.on("updateSensorData", function (msg) {
-    console.log("Received sensorData :: " + msg.date + " :: " + msg.value);
-
-    // Show only MAX_DATA_COUNT data
-    if (myChart.data.labels.length > MAX_DATA_COUNT) {
-      removeFirstData();
+    // Update task completion handlers
+    function handleTaskUpdate(category) {
+      logInfo(`Attempting to update task for ${category}`);
+      $.ajax({
+        url: '/update_status',
+        type: 'POST',
+        data: {
+          scenario: currentScenario,
+          category: category
+        },
+        success: function(response) {
+          logInfo(`Server response for ${category}:`, response);
+          if (response.success) {
+            if (taskManager.completeTask(category)) {
+              logInfo(`Successfully completed task for ${category}`);
+            } else {
+              logError(`Failed to complete task for ${category}`);
+            }
+          }
+        },
+        error: function(error) {
+          logError(`Failed to update task for ${category}:`, error);
+        }
+      });
     }
-    addData(msg.date, msg.value);
-  });
 
+    // Undo task handlers
+    function handleTaskUndo(category) {
+      logInfo(`Attempting to undo task for ${category}`);
+      $.ajax({
+        url: '/undo_step',
+        type: 'POST',
+        data: {
+          scenario: currentScenario,
+          category: category
+        },
+        success: function(response) {
+          logInfo(`Server response for undo ${category}:`, response);
+          if (response.success) {
+            if (taskManager.undoTask(category)) {
+              logInfo(`Successfully undid task for ${category}`);
+            } else {
+              logError(`Failed to undo task for ${category}`);
+            }
+          }
+        },
+        error: function(error) {
+          logError(`Failed to undo task for ${category}:`, error);
+        }
+      });
+    }
+
+    // Add event listeners for complete and undo buttons
+    categories.forEach(category => {
+      const completeBtn = document.getElementById(`complete-${category.toLowerCase()}`);
+      const undoBtn = document.getElementById(`undo-${category.toLowerCase()}`);
+      
+      if (completeBtn) {
+        // Remove any existing event listeners
+        completeBtn.replaceWith(completeBtn.cloneNode(true));
+        const newCompleteBtn = document.getElementById(`complete-${category.toLowerCase()}`);
+        newCompleteBtn.addEventListener('click', () => handleTaskUpdate(category));
+      }
+      
+      if (undoBtn) {
+        // Remove any existing event listeners
+        undoBtn.replaceWith(undoBtn.cloneNode(true));
+        const newUndoBtn = document.getElementById(`undo-${category.toLowerCase()}`);
+        newUndoBtn.addEventListener('click', () => handleTaskUndo(category));
+      }
+    });
+  }
+
+  // Timer functionality
+  if (document.getElementById('runningTimer')) {
+    let startTime = Date.now();
+    setInterval(() => {
+      const elapsedTime = Math.floor((Date.now() - startTime) / 1000);
+      const minutes = Math.floor(elapsedTime / 60);
+      const seconds = elapsedTime % 60;
+      const timerElement = document.getElementById('runningTimer');
+      if (timerElement) {
+        timerElement.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+      }
+    }, 1000);
+  }
+
+  // Close window functionality
+  const closeButton = document.getElementById('close_window');
+  if (closeButton) {
+    closeButton.addEventListener('click', () => {
+      fetch('/close_window', { method: 'POST' });
+    });
+  }
+
+  // Socket.io setup
+  const socket = io();
+  
+  socket.on('connect', () => logInfo('Connected to server'));
+  socket.on('disconnect', () => logInfo('Disconnected from server'));
 });
+

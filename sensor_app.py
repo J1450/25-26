@@ -31,21 +31,21 @@ Data Structures
    # Airways list
 
 tasks = {
-    0: 
-        {'Medications': {'count': 0, 'steps': [('Place IV #1', 1), ('Give Epi', 2)]},
-        'Compressions': [('CPR', 0)],
-        'Airways': [('Place Oxygen', 1)]
-        },
-    1: 
-        {'Medications': [('Give Epi', 2), ('Give Amiodarone', 3), ],
-        'Compressions': [('Shock', 0), ('CPR', 0)],
-        'Airways': [('Listen to lungs'), ('Place IV #2', 1)]
-        },
-    2: 
-        {'Medications': [('Give Bicarbonate', 4), ('EKG', 0)],
-        'Compressions': [('Check Blood Pressure', 0), ('Order CXR', 0)],
-        'Airways': [('Listen to lungs', 0), ('Call ICU', 0), ('Consult cardiology', 0)]
-        }
+    0: {
+        'Medications': {'count': 0, 'steps': [('Place IV #1', 1), ('Give Epi', 2)]},
+        'Compressions': {'count': 0, 'steps': [('CPR', 0)]},
+        'Airways': {'count': 0, 'steps': [('Place Oxygen', 1)]}
+    },
+    1: {
+        'Medications': {'count': 0, 'steps': [('Give Epi', 2), ('Give Amiodarone', 3)]},
+        'Compressions': {'count': 0, 'steps': [('Shock', 0), ('CPR', 0)]},
+        'Airways': {'count': 0, 'steps': [('Listen to lungs', 0), ('Place IV #2', 1)]}
+    },
+    2: {
+        'Medications': {'count': 0, 'steps': [('Give Bicarbonate', 4), ('EKG', 0)]},
+        'Compressions': {'count': 0, 'steps': [('Check Blood Pressure', 0), ('Order CXR', 0)]},
+        'Airways': {'count': 0, 'steps': [('Listen to lungs', 0), ('Call ICU', 0), ('Consult cardiology', 0)]}
+    }
 }
 
 interactions = []
@@ -174,14 +174,57 @@ def obtain_status():
         scenario = int(request.form.get('scenario'))
         category = request.form.get('category')
         
+        # Handle request for all categories
+        if category == 'all':
+            if scenario in tasks:
+                scenario_tasks = {}
+                for cat in tasks[scenario]:
+                    scenario_tasks[cat] = {
+                        'steps': tasks[scenario][cat]['steps'],
+                        'count': tasks[scenario][cat]['count']
+                    }
+                return jsonify({
+                    'success': True,
+                    'tasks': scenario_tasks
+                })
+            return jsonify({'success': False, 'message': 'Scenario not found'}), 404
+        
+        # Handle single category request
         if scenario in tasks and category in tasks[scenario]:
             step_info = tasks[scenario][category]
-            count = step_info['count']
-            if count < len(step_info['steps']):
-                step = step_info['steps'][count]
-                return jsonify({'success': True, 'step': step})
+            if step_info['count'] < len(step_info['steps']):
+                step = step_info['steps'][step_info['count']]
+                return jsonify({
+                    'success': True,
+                    'step': step,
+                    'remaining_steps': step_info['steps'][step_info['count']:]
+                })
+            return jsonify({'success': False, 'message': 'All tasks completed'}), 200
         
-        return jsonify({'success': False, 'message': 'Scenario or category not found or no steps available'}), 404
+        return jsonify({'success': False, 'message': 'Scenario or category not found'}), 404
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+@app.route('/update_status', methods=['POST'])
+def update_status():
+    try:
+        scenario = int(request.form.get('scenario'))
+        category = request.form.get('category')
+        
+        if scenario in tasks and category in tasks[scenario]:
+            step_info = tasks[scenario][category]
+            
+            if step_info['count'] < len(step_info['steps']):
+                step_info['count'] += 1
+                return jsonify({
+                    'success': True,
+                    'message': 'Status updated successfully',
+                    'current_count': step_info['count'],
+                    'total_steps': len(step_info['steps'])
+                })
+            return jsonify({'success': False, 'message': 'All tasks completed'}), 200
+        
+        return jsonify({'success': False, 'message': 'Invalid scenario or category'}), 404
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 500
 
@@ -194,33 +237,19 @@ def undo_step():
         if scenario in tasks and category in tasks[scenario]:
             step_info = tasks[scenario][category]
             
-            if isinstance(step_info, dict) and step_info['count'] > 0:
+            if step_info['count'] > 0:
                 step_info['count'] -= 1
-                return jsonify({'success': True, 'message': 'Step undone successfully'})
+                return jsonify({
+                    'success': True,
+                    'message': 'Step undone successfully',
+                    'current_count': step_info['count'],
+                    'total_steps': len(step_info['steps'])
+                })
+            return jsonify({'success': False, 'message': 'No steps to undo'}), 200
         
-        return jsonify({'success': False, 'message': 'Scenario or category not found or no steps to undo'}), 404
+        return jsonify({'success': False, 'message': 'Invalid scenario or category'}), 404
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 500
-
-
-
-@app.route('/update_status', methods=['POST'])
-def update_status():
-    try:
-        scenario = int(request.form.get('scenario'))
-        category = request.form.get('category')
-        
-        if scenario in tasks and category in tasks[scenario]:
-            step_info = tasks[scenario][category]
-            
-            if isinstance(step_info, dict) and step_info['count'] < len(step_info['steps']):
-                step_info['count'] += 1
-                return jsonify({'success': True, 'message': 'Status updated successfully'})
-        
-        return jsonify({'success': False, 'message': 'Scenario or category not found or already completed'}), 404
-    except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 500
-
 
 window = webview.create_window('ResQ Carts', app, fullscreen = True)
 
@@ -250,3 +279,4 @@ def disconnect():
 if __name__ == '__main__':
     #socketio.run(app)
     webview.start(window)
+

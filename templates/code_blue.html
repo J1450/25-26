@@ -13,53 +13,160 @@
   </head>
   <body>
     <script type="text/javascript" src="{{ url_for('static', filename = 'js/app.js') }}"></script>
-    <div class = "headercontainer">
-      <button class = "close" id = "close_window">Exit</button>
-      <div class = "timer">
-        <p id="runningTimer"></p>
+    <div class="headercontainer">
+      <button class="close" id="close_window">Exit</button>
+      <div class="timer">
+        <p id="runningTimer">00:00</p>
       </div>
-      <button class = "button" id="printPDF" type="submit" onclick="window.open('/generate_pdf')" style = "float:right;">Upload to EMR</button>
+      <button class="button" id="printPDF" type="submit" onclick="window.open('/generate_pdf')">Upload to EMR</button>
     </div>
+    
     <div class="rowcontainer">
       <div class="column">
-        <button class = "undo" id = "undo_person1">Undo</button>
-        <h2>Compressions</h2>
-        <div class="progress-container">
-          <div class="progress-bar" id = "progress-bar1" style="width: 50%;"></div>
-        </div>
-        <div class="text-box" id="text-line-1">
-          <p id="task1">{{ tasks[1]['person1']['task'] }}</p>
-          <p id="status1">Status: {{ tasks[1]['person1']['status'] }}</p>
-          <p id="stopwatchTimer1"></p>
-        </div>
-        <button class = "update" id = "update_person1">Complete</button>
-      </div>
-      <div class="column">
-        <button class = "undo" id = "undo_person2">Undo</button>
-        <h2>Airways</h2>
-        <div class="progress-container">
-          <div class="progress-bar" id = "progress-bar2" style="width: 50%;"></div>
-        </div>
-        <div class="text-box" id="text-line-1">
-          <p id="task2">{{ tasks[1]['person2']['task'] }}</p>
-          <p id="status2">Status: {{ tasks[1]['person2']['status'] }}</p>
-          <p id="stopwatchTimer2"></p>
-        </div>
-        <button class = "update" id = "update_person2">Complete</button>
-      </div>
-      <div class="column">
-        <button class = "undo" id = "undo_person3">Undo</button>
         <h2>Medications</h2>
         <div class="progress-container">
-          <div class="progress-bar" id = "progress-bar3" style="width: 75%;"></div>
+          <div class="progress-bar" id="progress-bar-medications"></div>
         </div>
-        <div class="text-box" id="text-line-1">
-          <p id="task3">{{ tasks[1]['person3']['task'] }}</p>
-          <p id="status3">Status: {{ tasks[1]['person3']['status'] }}</p>
-          <p id="stopwatchTimer3"></p>
+        <div class="task-container" id="medications-tasks">
+          {% for step in tasks[0]['Medications']['steps'] %}
+            <div class="task-item" data-step="{{ step[1] }}">
+              {{ step[0] }}
+            </div>
+          {% endfor %}
         </div>
-        <button class = "update" id = "update_person3">Complete</button>
+        <div class="button-container">
+          <button class="undo" id="undo-medications"></button>
+          <button class="update" id="complete-medications"></button>
+        </div>
+      </div>
+
+      <div class="column">
+        <h2>Compressions</h2>
+        <div class="progress-container">
+          <div class="progress-bar" id="progress-bar-compressions"></div>
+        </div>
+        <div class="task-container" id="compressions-tasks">
+          {% for step in tasks[0]['Compressions']['steps'] %}
+            <div class="task-item" data-step="{{ step[1] }}">
+              {{ step[0] }}
+            </div>
+          {% endfor %}
+        </div>
+        <div class="button-container">
+          <button class="undo" id="undo-compressions"></button>
+          <button class="update" id="complete-compressions"></button>
+        </div>
+      </div>
+
+      <div class="column">
+        <h2>Airways</h2>
+        <div class="progress-container">
+          <div class="progress-bar" id="progress-bar-airways"></div>
+        </div>
+        <div class="task-container" id="airways-tasks">
+          {% for step in tasks[0]['Airways']['steps'] %}
+            <div class="task-item" data-step="{{ step[1] }}">
+              {{ step[0] }}
+            </div>
+          {% endfor %}
+        </div>
+        <div class="button-container">
+          <button class="undo" id="undo-airways"></button>
+          <button class="update" id="complete-airways"></button>
+        </div>
       </div>
     </div>
+
+    <script>
+      // Initialize scenario counter
+      let currentScenario = 0;
+
+      // Function to update tasks for a category
+      function updateTasks(category) {
+        $.ajax({
+          url: '/update_status',
+          type: 'POST',
+          data: {
+            scenario: currentScenario,
+            category: category
+          },
+          success: function(response) {
+            if (response.success) {
+              // Update the UI accordingly
+              updateProgressBar(category);
+              loadNextTasks(category);
+            }
+          }
+        });
+      }
+
+      // Function to undo tasks for a category
+      function undoTasks(category) {
+        $.ajax({
+          url: '/undo_step',
+          type: 'POST',
+          data: {
+            scenario: currentScenario,
+            category: category
+          },
+          success: function(response) {
+            if (response.success) {
+              // Update the UI accordingly
+              updateProgressBar(category);
+              loadPreviousTasks(category);
+            }
+          }
+        });
+      }
+
+      // Function to load next tasks
+      function loadNextTasks(category) {
+        $.ajax({
+          url: '/obtain_status',
+          type: 'POST',
+          data: {
+            scenario: currentScenario,
+            category: category
+          },
+          success: function(response) {
+            if (response.success) {
+              // Update the task container with new tasks
+              const taskContainer = document.getElementById(category.toLowerCase() + '-tasks');
+              const taskItem = document.createElement('div');
+              taskItem.className = 'task-item';
+              taskItem.textContent = response.step[0];
+              taskItem.dataset.step = response.step[1];
+              taskContainer.appendChild(taskItem);
+            }
+          }
+        });
+      }
+
+      // Event listeners for buttons
+      document.getElementById('complete-medications').addEventListener('click', () => updateTasks('Medications'));
+      document.getElementById('complete-compressions').addEventListener('click', () => updateTasks('Compressions'));
+      document.getElementById('complete-airways').addEventListener('click', () => updateTasks('Airways'));
+
+      document.getElementById('undo-medications').addEventListener('click', () => undoTasks('Medications'));
+      document.getElementById('undo-compressions').addEventListener('click', () => undoTasks('Compressions'));
+      document.getElementById('undo-airways').addEventListener('click', () => undoTasks('Airways'));
+
+      // Timer functionality
+      let startTime = Date.now();
+      setInterval(() => {
+        const elapsedTime = Math.floor((Date.now() - startTime) / 1000);
+        const minutes = Math.floor(elapsedTime / 60);
+        const seconds = elapsedTime % 60;
+        document.getElementById('runningTimer').textContent = 
+          `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+      }, 1000);
+
+      // Close window functionality
+      document.getElementById('close_window').addEventListener('click', () => {
+        fetch('/close_window', { method: 'POST' });
+      });
+    </script>
   </body>
 </html>
+
+

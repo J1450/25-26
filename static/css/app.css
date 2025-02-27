@@ -5,19 +5,26 @@ body, textarea, input, select {
     font: 1em sans-serif;
     margin: 0;
 }
+
 .smooth {
     transition: all .2s;
 }
+
 .container {
     margin: 0 20px;
     width: auto;
 }
+
 h1 {
     font-size: 3em;
     color: #456990ff;
 }
+
 .btn, h2 {
     font-size: 2em;
+    text-align: center;
+    color: #456990ff;
+    margin-bottom: 20px;
 }
 
 .timer {
@@ -47,8 +54,15 @@ button {
     margin: 4px 2px;
     border-radius: 10px;
     cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
 }
-  
+
+button:hover {
+    opacity: 0.9;
+    transform: scale(1.02);
+}
+
 .button-center {
     margin: 0;
     position: absolute;
@@ -57,39 +71,157 @@ button {
     transform: translateY(-50%);
 }
 
-
 .update, .undo {
     color: white;
+    width: 80px;
+    height: 80px;
+    margin: 10px 8px;
+    padding: 0;
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 40px;
+    border-radius: 15px;
 }
 
 .update {
-    background-color: #357938;
-    border-color: #4CAF50;
+    background-color: #027D01;
+    border: 3px solid #016901;
+}
+
+.update:hover {
+    background-color: #016901;
+}
+
+.update::after {
+    content: '→';
+    font-size: 48➔px;
 }
 
 .undo {
-    background-color: #D5190B;
-    border-color: #f44336;
+    background-color: #D32F2F;
+    border: 3px solid #B71C1C;
 }
 
+.undo:hover {
+    background-color: #B71C1C;
+}
+
+.undo::after {
+    content: '←';
+    font-size: 48px;
+}
+
+.close {
+    background-color: #666;
+    padding: 10px 20px;
+}
+
+/* Task Container */
+.task-container {
+    border: 1px solid #ccc;
+    padding: 15px;
+    margin: 10px 0;
+    border-radius: 8px;
+    background-color: #f9f9f9;
+    width: 90%;
+}
+
+.task-item {
+    padding: 10px;
+    margin: 5px 0;
+    background-color: white;
+    border-radius: 5px;
+    border: 1px solid #eee;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.task-item:hover {
+    background-color: #f0f0f0;
+}
+
+.task-item.completed {
+    background-color: #e8f5e9;
+    border-color: #81c784;
+}
 
 /* Progress Bars */
-
 .progress-container {
-    width: 200px; 
-    height: 30px; 
+    width: 90%;
+    height: 30px;
     background-color: #f0f0f0;
     border-radius: 5px;
     position: relative;
-    margin-bottom: 25px;
+    margin: 15px 0;
 }
 
 .progress-bar {
     height: 100%;
-    background-color: green;
+    background-color: #4CAF50;
     border-radius: 5px;
     position: absolute;
     bottom: 0;
+    transition: width 0.3s ease;
+}
+
+/* Layout */
+.column {
+    flex: 1;
+    padding: 20px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    margin: 0 15px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background-color: white;
+    border-radius: 10px;
+    min-height: 500px;
+}
+
+.headercontainer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.rowcontainer {
+    display: flex;
+    justify-content: space-around;
+    padding: 20px;
+    margin-top: 20px;
+}
+
+/* Responsive Design */
+@media(max-width:870px) {
+    .rowcontainer {
+        flex-direction: column;
+    }
+    .column {
+        width: 90%;
+        margin: 15px auto;
+    }
+}
+
+/* Navigation */
+.nav {
+    background: #114b5fff;
+    color: white;
+    padding: 15px 0;
+}
+
+.nav a {
+    color: white;
+    text-decoration: none;
+    padding: 0 15px;
+}
+
+.nav .pagename {
+    font-size: 22px;
+    font-weight: bold;
 }
 
 /* Text Boxes */
@@ -180,9 +312,7 @@ button {
     border-left: 5px solid #59d;
 }
 
-
 /* Format of Website */
-
 .column {
     flex: 1;
     padding: 0px; 
@@ -199,7 +329,6 @@ button {
     justify-content: space-around;
     height: 4em;
 }
-
 
 .rowcontainer {
     display: flex;
@@ -237,3 +366,67 @@ button {
     margin-right: 10px; 
     border: 1px solid #000; 
 }
+
+.scenario-control {
+  display: flex;
+  align-items: center;
+  margin-right: 20px;
+}
+
+.scenario-control label {
+  margin-right: 10px;
+  color: #333;
+  font-weight: bold;
+}
+
+.scenario-control select {
+  padding: 5px 10px;
+  border: 2px solid #4CAF50;
+  border-radius: 4px;
+  background-color: white;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.scenario-control select:hover {
+  border-color: #45a049;
+}
+
+.scenario-control select:focus {
+  outline: none;
+  border-color: #45a049;
+  box-shadow: 0 0 5px rgba(76, 175, 80, 0.3);
+}
+
+/* Add a container for the buttons */
+.button-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-top: 10px;
+    width: 100%;
+}
+
+/* Progress bar colors based on new thresholds
+.task-manager {
+    updateProgressBar(category) {
+        const progressBar = document.getElementById(`progress-bar-${category.toLowerCase()}`);
+        if (progressBar && this.taskCounts[category]) {
+            const progress = (this.taskCounts[category].completed / this.taskCounts[category].total) * 100;
+            progressBar.style.width = `${progress}%`;
+            
+            // Update color based on new thresholds
+            if (progress < 34) {
+                progressBar.style.backgroundColor = '#ff4444';  // Red
+            } else if (progress < 67) {
+                progressBar.style.backgroundColor = '#ffeb3b';  // Yellow
+            } else {
+                progressBar.style.backgroundColor = '#4CAF50';  // Green
+            }
+            
+            logInfo(`Updated progress for ${category}: ${progress}%`);
+        }
+    }
+} */
+
+
