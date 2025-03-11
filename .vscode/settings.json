@@ -5,5 +5,12 @@
             "envManager": "ms-python.python:venv",
             "packageManager": "ms-python.python:pip"
         }
-    ]
+    ],
+    "files.associations": {
+        "atomic": "cpp",
+        "ios": "cpp",
+        "system_error": "cpp",
+        "xiosbase": "cpp",
+        "xstring": "cpp"
+    }
 }

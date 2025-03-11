@@ -165,6 +165,9 @@ $(document).ready(function () {
           categoryData.completed++;
           this.updateProgressBar(category);
           
+          // Record interaction
+          this.recordInteraction(category, 'complete');
+          
           logInfo(`Completed task ${categoryData.completed} in ${category}`);
           return true;
         }
@@ -191,7 +194,7 @@ $(document).ready(function () {
           this.updateProgressBar(category);
           
           // Record interaction
-          this.recordInteraction(category, `Undid: ${lastTaskData.element.textContent.trim()}`);
+          this.recordInteraction(category, 'undo');
           
           logInfo(`Undid task ${categoryData.completed + 1} in ${category}`);
           return true;
@@ -200,18 +203,17 @@ $(document).ready(function () {
       return false;
     }
 
-    recordInteraction(category, text) {
-      const timestamp = new Date().toLocaleString();
+    recordInteraction(category, action) {
       $.ajax({
         type: 'POST',
         url: '/record_interaction',
         data: { 
-          text: text,
-          timestamp: timestamp,
-          category: category
+          category: category,
+          action: action,
+          scenario: this.currentScenario
         },
         success: function(response) {
-          logInfo(`Recorded interaction for ${category}`);
+          logInfo(`Recorded ${action} interaction for ${category}`);
         },
         error: function(error) {
           logError(`Failed to record interaction for ${category}`);
@@ -344,4 +346,5 @@ $(document).ready(function () {
   socket.on('connect', () => logInfo('Connected to server'));
   socket.on('disconnect', () => logInfo('Disconnected from server'));
 });
+
 

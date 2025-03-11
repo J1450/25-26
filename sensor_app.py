@@ -4,12 +4,14 @@ from random import random
 from threading import Lock
 from datetime import datetime
 import time
+import os
+from pathlib import Path
 
 import weasyprint
 import serial
 import webview
 
-arduino = serial.Serial( "COM8", 9600, timeout=0)
+arduino = serial.Serial( "COM7", 9600, timeout=0)
 
 ''' 
 My variables
@@ -103,6 +105,10 @@ def code_blue():
     global interactions
     now = datetime.now()
     interactions.append(["Code Initiated", now.strftime("%m/%d/%Y %H:%M:%S")])
+    
+    # Send START signal to Arduino
+    arduino.write("START\n".encode())
+    
     return render_template('code_blue.html', tasks = tasks)
 
 """
@@ -145,25 +151,95 @@ Communication between Python and HTML
 #     print(strInput)
 #     return jsonify({'status': 'success'})
 
-# @app.route('/record_interaction', methods=['POST'])
-# def record_interaction():
-#     timestamp = request.form.get('timestamp')
-#     text = request.form.get('text')
-#     person = request.form.get('person')
-#     interactions.append([text, timestamp, person])
-#     return jsonify({'status': 'success'})
+@app.route('/record_interaction', methods=['POST'])
+def record_interaction():
+    global interactions
+    try:
+        timestamp = datetime.now().strftime("%m/%d/%Y %H:%M:%S")
+        category = request.form.get('category')
+        action = request.form.get('action')  # 'complete' or 'undo'
+        scenario = request.form.get('scenario')
+        
+        # Get the task name
+        scenario_int = int(scenario)
+        if scenario_int in tasks and category in tasks[scenario_int]:
+            step_info = tasks[scenario_int][category]
+            current_step = step_info['steps'][step_info['count'] - 1 if action == 'complete' else step_info['count']][0]
+            
+            # Format the interaction text
+            scenario_names = {0: 'Asystole', 1: 'Ventricular Fibrillation', 2: 'Normal Sinus'}
+            scenario_name = scenario_names.get(scenario_int, f'Scenario {scenario}')
+            text = f"[{scenario_name}] {category} - {'Completed' if action == 'complete' else 'Undid'}: {current_step}"
+            
+            # Only append if this exact interaction isn't the last one recorded
+            if not interactions or interactions[-1][0] != text:
+                interactions.append([text, timestamp])
+            return jsonify({'success': True, 'message': 'Interaction recorded'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
 
-# @app.route('/generate_pdf', methods=['GET'])
-# def generate_pdf():
-#     html_content = '<h1>Recorded Interactions</h1>'
-#     for interaction in interactions:
-#         html_content += f'<p>{interaction}</p>'
-#     pdf = weasyprint.HTML(string=html_content).write_pdf()
-#     # Provide the PDF file for download
-#     response = make_response(pdf)
-#     response.headers['Content-Type'] = 'application/pdf'
-#     response.headers['Content-Disposition'] = 'attachment; filename=recorded_interactions.pdf'
-#     return response
+@app.route('/generate_pdf', methods=['GET'])
+def generate_pdf():
+    try:
+        # Create HTML content
+        html_content = '''
+        <html>
+        <head>
+            <style>
+                body { font-family: Arial, sans-serif; margin: 40px; }
+                h1 { color: #2c3e50; text-align: center; }
+                .interaction { 
+                    margin: 10px 0;
+                    padding: 10px;
+                    border-bottom: 1px solid #eee;
+                }
+                .timestamp {
+                    color: #7f8c8d;
+                    font-size: 0.9em;
+                }
+            </style>
+        </head>
+        <body>
+            <h1>Code Blue Event Record</h1>
+        '''
+        
+        # Add interactions (ensure no duplicates)
+        seen_interactions = set()
+        for interaction in interactions:
+            text, timestamp = interaction
+            if text not in seen_interactions:
+                seen_interactions.add(text)
+                html_content += f'''
+                <div class="interaction">
+                    <div>{text}</div>
+                    <div class="timestamp">{timestamp}</div>
+                </div>
+                '''
+        
+        html_content += '''
+        </body>
+        </html>
+        '''
+        
+        # Generate PDF with a specific filename
+        filename = f'code_blue_record_{datetime.now().strftime("%Y%m%d_%H%M%S")}.pdf'
+        
+        # Get user's Downloads folder
+        downloads_path = str(Path.home() / "Downloads")
+        pdf_path = os.path.join(downloads_path, filename)
+        
+        # Generate and save PDF directly to Downloads folder
+        pdf = weasyprint.HTML(string=html_content).write_pdf()
+        with open(pdf_path, 'wb') as f:
+            f.write(pdf)
+        
+        return jsonify({
+            'success': True,
+            'message': f'PDF saved to Downloads folder as {filename}',
+            'path': pdf_path
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
 
 """
 Tasks
@@ -216,6 +292,18 @@ def update_status():
             
             if step_info['count'] < len(step_info['steps']):
                 step_info['count'] += 1
+                
+                # Record the interaction
+                timestamp = datetime.now().strftime("%m/%d/%Y %H:%M:%S")
+                current_step = step_info['steps'][step_info['count'] - 1][0]
+                scenario_names = {0: 'Asystole', 1: 'Ventricular Fibrillation', 2: 'Normal Sinus'}
+                scenario_name = scenario_names.get(scenario, f'Scenario {scenario}')
+                text = f"[{scenario_name}] {category} - Completed: {current_step}"
+                
+                # Only append if this exact interaction isn't the last one recorded
+                if not interactions or interactions[-1][0] != text:
+                    interactions.append([text, timestamp])
+                
                 return jsonify({
                     'success': True,
                     'message': 'Status updated successfully',
@@ -238,6 +326,17 @@ def undo_step():
             step_info = tasks[scenario][category]
             
             if step_info['count'] > 0:
+                # Record the interaction before decrementing the count
+                timestamp = datetime.now().strftime("%m/%d/%Y %H:%M:%S")
+                current_step = step_info['steps'][step_info['count'] - 1][0]
+                scenario_names = {0: 'Asystole', 1: 'Ventricular Fibrillation', 2: 'Normal Sinus'}
+                scenario_name = scenario_names.get(scenario, f'Scenario {scenario}')
+                text = f"[{scenario_name}] {category} - Undid: {current_step}"
+                
+                # Only append if this exact interaction isn't the last one recorded
+                if not interactions or interactions[-1][0] != text:
+                    interactions.append([text, timestamp])
+                
                 step_info['count'] -= 1
                 return jsonify({
                     'success': True,
@@ -279,4 +378,5 @@ def disconnect():
 if __name__ == '__main__':
     #socketio.run(app)
     webview.start(window)
+
 

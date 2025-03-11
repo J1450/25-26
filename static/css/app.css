@@ -21,10 +21,11 @@ h1 {
 }
 
 .btn, h2 {
-    font-size: 2em;
+    font-size: 2.5em;
     text-align: center;
     color: #456990ff;
     margin-bottom: 20px;
+    font-weight: bold;
 }
 
 .timer {
@@ -95,7 +96,7 @@ button:hover {
 
 .update::after {
     content: '→';
-    font-size: 48➔px;
+    font-size: 48px;
 }
 
 .undo {
@@ -120,21 +121,23 @@ button:hover {
 /* Task Container */
 .task-container {
     border: 1px solid #ccc;
-    padding: 15px;
-    margin: 10px 0;
-    border-radius: 8px;
+    padding: 20px;
+    margin: 15px 0;
+    border-radius: 12px;
     background-color: #f9f9f9;
-    width: 90%;
+    width: 95%;
 }
 
 .task-item {
-    padding: 10px;
-    margin: 5px 0;
+    padding: 15px;
+    margin: 8px 0;
     background-color: white;
-    border-radius: 5px;
+    border-radius: 8px;
     border: 1px solid #eee;
     cursor: pointer;
     transition: all 0.2s ease;
+    font-size: 1.2em;
+    font-weight: 500;
 }
 
 .task-item:hover {
@@ -148,12 +151,12 @@ button:hover {
 
 /* Progress Bars */
 .progress-container {
-    width: 90%;
-    height: 30px;
+    width: 95%;
+    height: 35px;
     background-color: #f0f0f0;
-    border-radius: 5px;
+    border-radius: 8px;
     position: relative;
-    margin: 15px 0;
+    margin: 20px 0;
 }
 
 .progress-bar {
@@ -162,7 +165,7 @@ button:hover {
     border-radius: 5px;
     position: absolute;
     bottom: 0;
-    transition: width 0.3s ease;
+    transition: width 0.3s ease, background-color 0.3s ease;
 }
 
 /* Layout */
@@ -407,7 +410,7 @@ button:hover {
     width: 100%;
 }
 
-/* Progress bar colors based on new thresholds
+/* Progress bar colors based on new thresholds */
 .task-manager {
     updateProgressBar(category) {
         const progressBar = document.getElementById(`progress-bar-${category.toLowerCase()}`);
@@ -427,6 +430,6 @@ button:hover {
             logInfo(`Updated progress for ${category}: ${progress}%`);
         }
     }
-} */
+}
 
 
