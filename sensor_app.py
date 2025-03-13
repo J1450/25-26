@@ -259,6 +259,18 @@ def obtain_status():
                         'steps': tasks[scenario][cat]['steps'],
                         'count': tasks[scenario][cat]['count']
                     }
+                    # Send drawer signal for pending tasks
+                    if tasks[scenario][cat]['count'] < len(tasks[scenario][cat]['steps']):
+                        current_step = tasks[scenario][cat]['steps'][tasks[scenario][cat]['count']][0]
+                        if "Place IV" in current_step or "Place Oxygen" in current_step:
+                            arduino.write("1,{}\n".format(current_step).encode())
+                        elif "Give Epi" in current_step:
+                            arduino.write("2,{}\n".format(current_step).encode())
+                        elif "Give Amiodarone" in current_step:
+                            arduino.write("3,{}\n".format(current_step).encode())
+                        elif "Give Bicarbonate" in current_step:
+                            arduino.write("4,{}\n".format(current_step).encode())
+                
                 return jsonify({
                     'success': True,
                     'tasks': scenario_tasks
@@ -280,6 +292,25 @@ def obtain_status():
         return jsonify({'success': False, 'message': 'Scenario or category not found'}), 404
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 500
+
+def update_drawer_lights(scenario):
+    # First, turn off all drawer lights
+    for i in range(1, 5):
+        arduino.write(f"{i},OFF\n".encode())
+    
+    # Then turn on lights for all pending tasks
+    for cat in tasks[scenario]:
+        cat_info = tasks[scenario][cat]
+        if cat_info['count'] < len(cat_info['steps']):
+            next_step = cat_info['steps'][cat_info['count']][0]
+            if "Place IV" in next_step or "Place Oxygen" in next_step:
+                arduino.write("1,{}\n".format(next_step).encode())
+            elif "Give Epi" in next_step:
+                arduino.write("2,{}\n".format(next_step).encode())
+            elif "Give Amiodarone" in next_step:
+                arduino.write("3,{}\n".format(next_step).encode())
+            elif "Give Bicarbonate" in next_step:
+                arduino.write("4,{}\n".format(next_step).encode())
 
 @app.route('/update_status', methods=['POST'])
 def update_status():
@@ -303,6 +334,9 @@ def update_status():
                 # Only append if this exact interaction isn't the last one recorded
                 if not interactions or interactions[-1][0] != text:
                     interactions.append([text, timestamp])
+                    
+                    # Update all drawer lights based on current state
+                    update_drawer_lights(scenario)
                 
                 return jsonify({
                     'success': True,
@@ -338,6 +372,10 @@ def undo_step():
                     interactions.append([text, timestamp])
                 
                 step_info['count'] -= 1
+                
+                # Update all drawer lights based on current state
+                update_drawer_lights(scenario)
+                
                 return jsonify({
                     'success': True,
                     'message': 'Step undone successfully',
