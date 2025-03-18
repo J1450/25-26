@@ -66,7 +66,7 @@ $(document).ready(function () {
         };
         this.updateProgressBar(category);
       });
-
+    
       // Load new tasks for the scenario
       $.ajax({
         url: '/obtain_status',
@@ -94,7 +94,7 @@ $(document).ready(function () {
                 this.initializeCategory(category);
               }
             });
-
+    
             // Reattach event listeners for all buttons
             this.reattachEventListeners();
           } else {
@@ -114,10 +114,16 @@ $(document).ready(function () {
         this.taskCounts[category] = {
           total: tasks.length,
           completed: 0,
-          tasks: Array.from(tasks).map(task => ({
-            element: task,
-            completed: false
-          }))
+          tasks: Array.from(tasks).map((task, index) => {
+            // Only display the first task, hide the rest
+            if (index > 0) {
+              task.style.display = 'none';
+            }
+            return {
+              element: task,
+              completed: false
+            };
+          })
         };
         logInfo(`Initialized ${category} with ${tasks.length} tasks`);
         this.updateProgressBar(category);
@@ -150,24 +156,29 @@ $(document).ready(function () {
     completeTask(category) {
       const categoryData = this.taskCounts[category];
       if (categoryData && categoryData.completed < categoryData.total) {
-        const nextTaskData = categoryData.tasks[categoryData.completed];
-        if (nextTaskData && !nextTaskData.completed) {
-          // Mark task as completed
-          nextTaskData.completed = true;
-          nextTaskData.element.classList.add('completed');
-          
-          // Visual feedback
-          nextTaskData.element.style.backgroundColor = '#e8f5e9';
-          nextTaskData.element.style.borderColor = '#81c784';
-          nextTaskData.element.style.color = '#2e7d32';
-          
-          // Update counts and progress
+        const currentTaskData = categoryData.tasks[categoryData.completed];
+        if (currentTaskData && !currentTaskData.completed) {
+          // Mark the current task as completed
+          currentTaskData.completed = true;
+          currentTaskData.element.classList.add('completed');
+          currentTaskData.element.style.backgroundColor = '#e8f5e9';
+          currentTaskData.element.style.borderColor = '#81c784';
+          currentTaskData.element.style.color = '#2e7d32';
+    
+          // Hide the current task
+          currentTaskData.element.style.display = 'none';
+    
+          // Move to the next task
           categoryData.completed++;
+          if (categoryData.completed < categoryData.total) {
+            const nextTaskData = categoryData.tasks[categoryData.completed];
+            nextTaskData.element.style.display = 'block'; // Show the next task
+          }
+    
+          // Update progress bar and record interaction
           this.updateProgressBar(category);
-          
-          // Record interaction
           this.recordInteraction(category, 'complete');
-          
+    
           logInfo(`Completed task ${categoryData.completed} in ${category}`);
           return true;
         }
@@ -231,12 +242,6 @@ $(document).ready(function () {
           completeBtn.parentNode.replaceChild(newCompleteBtn, completeBtn);
           newCompleteBtn.addEventListener('click', () => handleTaskUpdate(category));
         }
-        
-        if (undoBtn) {
-          const newUndoBtn = undoBtn.cloneNode(true);
-          undoBtn.parentNode.replaceChild(newUndoBtn, undoBtn);
-          newUndoBtn.addEventListener('click', () => handleTaskUndo(category));
-        }
       });
     }
   }
@@ -271,32 +276,6 @@ $(document).ready(function () {
       });
     }
 
-    // Undo task handlers
-    function handleTaskUndo(category) {
-      logInfo(`Attempting to undo task for ${category}`);
-      $.ajax({
-        url: '/undo_step',
-        type: 'POST',
-        data: {
-          scenario: currentScenario,
-          category: category
-        },
-        success: function(response) {
-          logInfo(`Server response for undo ${category}:`, response);
-          if (response.success) {
-            if (taskManager.undoTask(category)) {
-              logInfo(`Successfully undid task for ${category}`);
-            } else {
-              logError(`Failed to undo task for ${category}`);
-            }
-          }
-        },
-        error: function(error) {
-          logError(`Failed to undo task for ${category}:`, error);
-        }
-      });
-    }
-
     // Add event listeners for complete and undo buttons
     categories.forEach(category => {
       const completeBtn = document.getElementById(`complete-${category.toLowerCase()}`);
@@ -307,13 +286,6 @@ $(document).ready(function () {
         completeBtn.replaceWith(completeBtn.cloneNode(true));
         const newCompleteBtn = document.getElementById(`complete-${category.toLowerCase()}`);
         newCompleteBtn.addEventListener('click', () => handleTaskUpdate(category));
-      }
-      
-      if (undoBtn) {
-        // Remove any existing event listeners
-        undoBtn.replaceWith(undoBtn.cloneNode(true));
-        const newUndoBtn = document.getElementById(`undo-${category.toLowerCase()}`);
-        newUndoBtn.addEventListener('click', () => handleTaskUndo(category));
       }
     });
   }
