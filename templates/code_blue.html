@@ -49,7 +49,14 @@
     </style>
   </head>
   <body>
-    <script type="text/javascript" src="{{ url_for('static', filename = 'js/app.js') }}"></script>
+    <script type="text/javascript">
+      // Set initial scenario from server
+      window.currentScenario = parseInt('{{ initial_scenario }}');
+      
+      // Ensure tasks are properly initialized
+      window.initialTasks = JSON.parse('{{ tasks|tojson|safe }}');
+    </script>
+    <script src="{{url_for('static', filename = 'js/app.js')}}"></script>
     <div class="headercontainer">
       <button class="close" id="close_window">Exit</button>
       <div class="timer">
@@ -61,16 +68,18 @@
     <div class="rowcontainer">
       <div class="column">
         <h2>Provider 1</h2>
-        <div class="progress-container">
+        <div class="progress-container" id="progress-container-medications">
           <div class="progress-bar" id="progress-bar-medications"></div>
           <span class="progress-timer" id="timer-medications">20s</span>
         </div>
         <div class="task-container" id="medications-tasks">
-          {% for step in tasks[0]['Medications']['steps'] %}
-            <div class="task-item" data-step="{{ step[1] }}">
-              {{ step[0] }}
-            </div>
-          {% endfor %}
+          {% if tasks and 'Medications' in tasks %}
+            {% for step in tasks['Medications']['steps'] %}
+              <div class="task-item" data-step="{{ step[1] }}">
+                {{ step[0] }}
+              </div>
+            {% endfor %}
+          {% endif %}
         </div>
         <div class="button-container">
           <button class="large-button" id="complete-medications">Complete</button>
@@ -79,16 +88,18 @@
 
       <div class="column">
         <h2>Provider 2</h2>
-        <div class="progress-container">
+        <div class="progress-container" id="progress-container-compressions">
           <div class="progress-bar" id="progress-bar-compressions"></div>
           <span class="progress-timer" id="timer-compressions">20s</span>
         </div>
         <div class="task-container" id="compressions-tasks">
-          {% for step in tasks[0]['Compressions']['steps'] %}
-            <div class="task-item" data-step="{{ step[1] }}">
-              {{ step[0] }}
-            </div>
-          {% endfor %}
+          {% if tasks and 'Compressions' in tasks %}
+            {% for step in tasks['Compressions']['steps'] %}
+              <div class="task-item" data-step="{{ step[1] }}">
+                {{ step[0] }}
+              </div>
+            {% endfor %}
+          {% endif %}
         </div>
         <div class="button-container">
           <button class="large-button" id="complete-compressions">Complete</button>
@@ -97,16 +108,18 @@
 
       <div class="column">
         <h2>Provider 3</h2>
-        <div class="progress-container">
+        <div class="progress-container" id="progress-container-airways">
           <div class="progress-bar" id="progress-bar-airways"></div>
           <span class="progress-timer" id="timer-airways">20s</span>
         </div>
         <div class="task-container" id="airways-tasks">
-          {% for step in tasks[0]['Airways']['steps'] %}
-            <div class="task-item" data-step="{{ step[1] }}">
-              {{ step[0] }}
-            </div>
-          {% endfor %}
+          {% if tasks and 'Airways' in tasks %}
+            {% for step in tasks['Airways']['steps'] %}
+              <div class="task-item" data-step="{{ step[1] }}">
+                {{ step[0] }}
+              </div>
+            {% endfor %}
+          {% endif %}
         </div>
         <div class="button-container">
           <button class="large-button" id="complete-airways">Complete</button>
@@ -115,9 +128,6 @@
     </div>
 
     <script>
-      // Initialize scenario counter
-      let currentScenario = 0;
-
       // Function to update tasks for a category
       function updateTasks(category) {
         $.ajax({

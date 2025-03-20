@@ -12,8 +12,102 @@ $(document).ready(function () {
   }
 
   $('#startCode').on('click', function() {
-    window.location.href = '/start_code';
+    // Create and show questions before redirecting
+    const container = document.createElement('div');
+    container.id = 'questions-container';
+    container.style.display = 'block';
+    container.style.position = 'fixed';
+    container.style.bottom = '20px';
+    container.style.left = '0';
+    container.style.right = '0';
+    container.style.padding = '20px';
+    container.style.backgroundColor = '#f8f9fa';
+    container.style.borderTop = '1px solid #dee2e6';
+    container.style.textAlign = 'center';
+    container.style.zIndex = '1000';
+
+    container.innerHTML = `
+      <div class="question" id="pulse-question" style="margin-bottom: 15px;">
+        <h3>Pulse?</h3>
+        <button class="btn btn-primary" style="color: white;" onclick="handleInitialAnswer('pulse', true)">Yes</button>
+        <button class="btn btn-primary" style="color: white;" onclick="handleInitialAnswer('pulse', false)">No</button>
+      </div>
+      <div class="question" id="rhythm-question" style="margin-bottom: 15px;">
+        <h3>Shockable Rhythm?</h3>
+        <button class="btn btn-primary" style="color: white;" onclick="handleInitialAnswer('rhythm', true)">Yes</button>
+        <button class="btn btn-primary" style="color: white;" onclick="handleInitialAnswer('rhythm', false)">No</button>
+      </div>
+    `;
+
+    document.body.appendChild(container);
   });
+
+  // Global answers object for initial scenario selection
+  window.initialAnswers = {};
+
+  // Handle initial answers and redirect
+  window.handleInitialAnswer = function(type, value) {
+    initialAnswers[type] = value;
+
+    // Disable the clicked buttons for this question
+    const questionDiv = document.getElementById(`${type}-question`);
+    if (questionDiv) {
+      const buttons = questionDiv.getElementsByTagName('button');
+      Array.from(buttons).forEach(button => {
+        button.disabled = true;
+        if (button.textContent.toLowerCase() === (value ? 'yes' : 'no')) {
+          button.style.backgroundColor = '#28a745';
+        } else {
+          button.style.opacity = '0.5';
+        }
+      });
+    }
+
+    // Check if both questions are answered
+    if ('pulse' in initialAnswers && 'rhythm' in initialAnswers) {
+      // Check for invalid yes/yes combination
+      if (initialAnswers.pulse && initialAnswers.rhythm) {
+        // Reset answers
+        initialAnswers = {};
+        
+        // Reset all buttons after a short delay
+        setTimeout(() => {
+          const container = document.getElementById('questions-container');
+          if (container) {
+            // Reset the container's HTML to its initial state
+            container.innerHTML = `
+              <div class="question" id="pulse-question" style="margin-bottom: 15px;">
+                <h3>Pulse?</h3>
+                <button class="btn btn-primary" style="color: white;" onclick="handleInitialAnswer('pulse', true)">Yes</button>
+                <button class="btn btn-primary" style="color: white;" onclick="handleInitialAnswer('pulse', false)">No</button>
+              </div>
+              <div class="question" id="rhythm-question" style="margin-bottom: 15px;">
+                <h3>Shockable Rhythm?</h3>
+                <button class="btn btn-primary" style="color: white;" onclick="handleInitialAnswer('rhythm', true)">Yes</button>
+                <button class="btn btn-primary" style="color: white;" onclick="handleInitialAnswer('rhythm', false)">No</button>
+              </div>
+            `;
+          }
+        }, 500);
+        return;
+      }
+
+      // Determine the initial scenario
+      let initialScenario;
+      if (!initialAnswers.pulse && !initialAnswers.rhythm) {
+        initialScenario = 0; // Asystole
+      } else if (!initialAnswers.pulse && initialAnswers.rhythm) {
+        initialScenario = 1; // Ventricular Fibrillation
+      } else if (initialAnswers.pulse && !initialAnswers.rhythm) {
+        initialScenario = 2; // Normal Sinus
+      }
+
+      // Redirect with the selected scenario after a short delay
+      setTimeout(() => {
+        window.location.href = `/start_code?scenario=${initialScenario}`;
+      }, 1000);
+    }
+  };
 
   // Task Management
   class TaskManager {
@@ -30,7 +124,7 @@ $(document).ready(function () {
       // Start the 15-second timer for questions
       setTimeout(() => {
         this.showQuestions();
-      }, 15000); // 15 seconds
+      }, 15000);
     }
 
     setupQuestionPrompt() {
@@ -51,13 +145,13 @@ $(document).ready(function () {
       this.questionsHTML = `
         <div class="question" id="pulse-question" style="margin-bottom: 15px;">
           <h3>Pulse?</h3>
-          <button class="btn btn-primary" onclick="window.taskManager.answerQuestion('pulse', true)">Yes</button>
-          <button class="btn btn-primary" onclick="window.taskManager.answerQuestion('pulse', false)">No</button>
+          <button class="btn btn-primary" style="color: white;" onclick="window.taskManager.answerQuestion('pulse', true)">Yes</button>
+          <button class="btn btn-primary" style="color: white;" onclick="window.taskManager.answerQuestion('pulse', false)">No</button>
         </div>
         <div class="question" id="rhythm-question" style="margin-bottom: 15px;">
           <h3>Shockable Rhythm?</h3>
-          <button class="btn btn-primary" onclick="window.taskManager.answerQuestion('rhythm', true)">Yes</button>
-          <button class="btn btn-primary" onclick="window.taskManager.answerQuestion('rhythm', false)">No</button>
+          <button class="btn btn-primary" style="color: white;" onclick="window.taskManager.answerQuestion('rhythm', true)">Yes</button>
+          <button class="btn btn-primary" style="color: white;" onclick="window.taskManager.answerQuestion('rhythm', false)">No</button>
         </div>
       `;
 
@@ -202,6 +296,8 @@ $(document).ready(function () {
             if (index > 0) {
               task.style.display = 'none';
             }
+            // Center align the task text
+            task.style.textAlign = 'center';
             return {
               element: task,
               completed: false
@@ -243,6 +339,7 @@ $(document).ready(function () {
         if (currentTaskData && !currentTaskData.completed) {
           // Check if completing a CPR task and send stop signal
           if (currentTaskData.element.textContent.trim() === 'CPR') {
+            logInfo('Attempting to stop CPR lights');
             // Send stop signal to Arduino and wait for confirmation
             let retryCount = 0;
             const maxRetries = 3;
@@ -257,6 +354,7 @@ $(document).ready(function () {
                   action: 'cpr_stop'
                 },
                 success: (response) => {
+                  logInfo('CPR stop response:', response);
                   if (response.success) {
                     // Only proceed with task completion after successful signal
                     this.finishTaskCompletion(category, categoryData, currentTaskData);
@@ -269,15 +367,18 @@ $(document).ready(function () {
                   } else if (retryCount < maxRetries) {
                     // Retry if failed
                     retryCount++;
+                    logInfo(`Retrying CPR stop signal, attempt ${retryCount}`);
                     setTimeout(attemptStopCPR, 100);
                   } else {
                     logError('Failed to stop CPR lights after multiple attempts');
                   }
                 },
-                error: () => {
+                error: (error) => {
+                  logError('Error stopping CPR lights:', error);
                   if (retryCount < maxRetries) {
                     // Retry if failed
                     retryCount++;
+                    logInfo(`Retrying CPR stop signal after error, attempt ${retryCount}`);
                     setTimeout(attemptStopCPR, 100);
                   } else {
                     logError('Failed to stop CPR lights after multiple attempts');
@@ -288,6 +389,7 @@ $(document).ready(function () {
 
             // Start the first attempt
             attemptStopCPR();
+            return true;
           } else {
             // For non-CPR tasks, proceed normally
             this.finishTaskCompletion(category, categoryData, currentTaskData);
@@ -297,8 +399,8 @@ $(document).ready(function () {
                 this.startCountdown(category);
               }, 50);
             }
+            return true;
           }
-          return true;
         }
       }
       return false;
@@ -421,7 +523,7 @@ $(document).ready(function () {
 
       // Check if there are remaining tasks
       const taskContainer = document.getElementById(`${lowerCategory}-tasks`);
-      const tasks = taskContainer ? Array.from(taskContainer.getElementsByClassName('task-item')) : [];
+      const tasks = taskContainer ? Array.from(taskContainer.getElementsByClassName('task-item')).filter(task => task.style.display !== 'none') : [];
       const hasRemainingTasks = tasks.length > 0;
       const currentTask = tasks[0] ? tasks[0].textContent.trim() : '';
 
@@ -441,10 +543,41 @@ $(document).ready(function () {
               logInfo('CPR lights started successfully');
             } else {
               logError('Failed to start CPR lights:', response.message);
+              // Retry once if failed
+              setTimeout(() => {
+                $.ajax({
+                  url: '/update_status',
+                  type: 'POST',
+                  data: {
+                    scenario: this.currentScenario,
+                    category: category,
+                    action: 'cpr_start'
+                  },
+                  success: (retryResponse) => {
+                    if (retryResponse.success) {
+                      logInfo('CPR lights started successfully on retry');
+                    } else {
+                      logError('Failed to start CPR lights on retry:', retryResponse.message);
+                    }
+                  }
+                });
+              }, 100);
             }
           },
           error: (error) => {
             logError('Error starting CPR lights:', error);
+            // Retry once if failed
+            setTimeout(() => {
+              $.ajax({
+                url: '/update_status',
+                type: 'POST',
+                data: {
+                  scenario: this.currentScenario,
+                  category: category,
+                  action: 'cpr_start'
+                }
+              });
+            }, 100);
           }
         });
       }
@@ -552,7 +685,7 @@ $(document).ready(function () {
         url: '/update_status',
         type: 'POST',
         data: {
-          scenario: currentScenario,
+          scenario: taskManager.currentScenario,
           category: category
         },
         success: function(response) {

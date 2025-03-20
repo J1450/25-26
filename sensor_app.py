@@ -100,16 +100,39 @@ Serve root index file
 def index():
     return render_template("index.html")
 
-@app.route('/start_code', methods=['GET'])
-def code_blue():
+@app.route('/start_code')
+def start_code():
     global interactions
-    now = datetime.now()
-    interactions.append(["Code Initiated", now.strftime("%m/%d/%Y %H:%M:%S")])
-    
-    # Send START signal to Arduino
-    arduino.write("START\n".encode())
-    
-    return render_template('code_blue.html', tasks = tasks)
+    try:
+        # Get the initial scenario from query parameters, default to 0 (Asystole)
+        initial_scenario = int(request.args.get('scenario', '0'))
+        
+        # Record the start of code blue
+        now = datetime.now()
+        scenario_names = {0: 'Asystole', 1: 'Ventricular Fibrillation', 2: 'Normal Sinus'}
+        scenario_name = scenario_names.get(initial_scenario, f'Scenario {initial_scenario}')
+        interactions.append([f"Code Initiated - {scenario_name}", now.strftime("%m/%d/%Y %H:%M:%S")])
+        
+        # Send START signal to Arduino
+        arduino.write("START\n".encode())
+        arduino.flush()  # Ensure the command is sent
+        
+        # Reset task counts for the selected scenario
+        if initial_scenario in tasks:
+            scenario_tasks = tasks[initial_scenario]
+            # Reset counts for each category
+            for category in scenario_tasks:
+                scenario_tasks[category]['count'] = 0
+            
+            return render_template('code_blue.html', 
+                                tasks=scenario_tasks,
+                                initial_scenario=initial_scenario)
+        else:
+            return jsonify({'success': False, 'message': 'Invalid scenario'}), 400
+            
+    except Exception as e:
+        print(f"Error in start_code: {str(e)}")  # Log the error
+        return jsonify({'success': False, 'message': str(e)}), 500
 
 """
 Communication between Python and HTML
