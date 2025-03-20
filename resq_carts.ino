@@ -26,7 +26,7 @@ uint32_t colors[] = {CRGB::Yellow, CRGB::Red, CRGB::Purple, CRGB::Blue, CRGB::Or
 const unsigned long beatInterval = 250; // 60000ms / 120 beats / 2 = 250ms per beat
 unsigned long lastBeatTime = 0;
 bool beatState = false;
-bool codeStarted = false;
+bool cprActive = false;
 
 
 // CPR LED indices (first 50 LEDs)
@@ -48,11 +48,21 @@ void setup() {
 
 
 void loop() {
-  // Check for start signal
+  // Check for serial commands
   if (Serial.available() > 0) {
     String data = Serial.readStringUntil('\n');
     if (data.indexOf("START") != -1) {
-      codeStarted = true;
+      cprActive = true;
+    }
+    else if (data.indexOf("STOP") != -1) {
+      cprActive = false;
+      // Turn off CPR LEDs immediately
+      for (int i = CPR_START_LED; i <= CPR_END_LED; i++) {
+        leds[i] = CRGB::Black;
+      }
+      FastLED.show();
+      // Send confirmation back
+      Serial.println("CPR_STOPPED");
     }
     else {
       // Handle regular drawer signals
@@ -61,8 +71,8 @@ void loop() {
   }
 
 
-  // Only flash CPR LEDs if code has started
-  if (codeStarted) {
+  // Only flash CPR LEDs if CPR is active
+  if (cprActive) {
     unsigned long currentTime = millis();
     if (currentTime - lastBeatTime >= beatInterval) {
       beatState = !beatState;
@@ -74,9 +84,16 @@ void loop() {
 
 
 void updateCPRLights(bool state) {
-  // Update only the CPR LEDs (first 50)
-  for (int i = CPR_START_LED; i <= CPR_END_LED; i++) {
-    leds[i] = state ? CPR_COLOR : CRGB::Black;
+  if (!cprActive) {
+    // Ensure lights are off if CPR is not active
+    for (int i = CPR_START_LED; i <= CPR_END_LED; i++) {
+      leds[i] = CRGB::Black;
+    }
+  } else {
+    // Update only the CPR LEDs (first 50)
+    for (int i = CPR_START_LED; i <= CPR_END_LED; i++) {
+      leds[i] = state ? CPR_COLOR : CRGB::Black;
+    }
   }
   FastLED.show();
 }

@@ -289,41 +289,80 @@ def update_drawer_lights(scenario):
 
 @app.route('/update_status', methods=['POST'])
 def update_status():
+    global stepNumber
+    category = request.form.get('category')
+    scenario = int(request.form.get('scenario', 0))
+    action = request.form.get('action')
+    
     try:
-        scenario = int(request.form.get('scenario'))
-        category = request.form.get('category')
-        
-        if scenario in tasks and category in tasks[scenario]:
-            step_info = tasks[scenario][category]
+        # Handle CPR task signals
+        if action == 'cpr_start':
+            print("Starting CPR lights")  # Debug log
+            # Send START signal to Arduino for CPR lights
+            arduino.write("START\n".encode())
+            arduino.flush()  # Force flush the buffer
+            time.sleep(0.1)  # Small delay to ensure command is sent
+            return jsonify({'success': True})
             
+        elif action == 'cpr_stop':
+            print("Stopping CPR lights")  # Debug log
+            # Send STOP signal to Arduino for CPR lights and wait for confirmation
+            arduino.write("STOP\n".encode())
+            arduino.flush()  # Force flush the buffer
+            
+            # Wait for confirmation (with timeout)
+            start_time = time.time()
+            while time.time() - start_time < 1.0:  # 1 second timeout
+                if arduino.in_waiting:
+                    response = arduino.readline().decode().strip()
+                    print(f"Received response: {response}")  # Debug log
+                    if response == "CPR_STOPPED":
+                        return jsonify({'success': True})
+                time.sleep(0.1)
+            
+            # If we didn't get confirmation, return failure
+            return jsonify({
+                'success': False,
+                'message': 'Did not receive confirmation of CPR stop'
+            })
+        
+        # Record the interaction and update task count
+        if category in tasks[scenario]:
+            step_info = tasks[scenario][category]
             if step_info['count'] < len(step_info['steps']):
+                current_task = step_info['steps'][step_info['count']][0]
+                now = datetime.now()
+                interactions.append([f"{category}: {current_task}", now.strftime("%m/%d/%Y %H:%M:%S")])
+                
+                # Update task count
                 step_info['count'] += 1
                 
-                # Record the interaction
-                timestamp = datetime.now().strftime("%m/%d/%Y %H:%M:%S")
-                current_step = step_info['steps'][step_info['count'] - 1][0]
-                scenario_names = {0: 'Asystole', 1: 'Ventricular Fibrillation', 2: 'Normal Sinus'}
-                scenario_name = scenario_names.get(scenario, f'Scenario {scenario}')
-                text = f"[{scenario_name}] {category} - Completed: {current_step}"
-                
-                # Only append if this exact interaction isn't the last one recorded
-                if not interactions or interactions[-1][0] != text:
-                    interactions.append([text, timestamp])
-                    
-                    # Update all drawer lights based on current state
-                    update_drawer_lights(scenario)
+                # Update drawer lights if needed
+                update_drawer_lights(scenario)
                 
                 return jsonify({
                     'success': True,
-                    'message': 'Status updated successfully',
+                    'message': 'Task updated successfully',
                     'current_count': step_info['count'],
                     'total_steps': len(step_info['steps'])
                 })
-            return jsonify({'success': False, 'message': 'All tasks completed'}), 200
+            
+            return jsonify({
+                'success': True,
+                'message': 'All tasks completed'
+            })
         
-        return jsonify({'success': False, 'message': 'Invalid scenario or category'}), 404
+        return jsonify({
+            'success': False,
+            'message': 'Invalid category or scenario'
+        })
+    
     except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 500
+        print(f"Error in update_status: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': f'Error: {str(e)}'
+        })
 
 @app.route('/undo_step', methods=['POST'])
 def undo_step():
@@ -391,5 +430,7 @@ def disconnect():
 if __name__ == '__main__':
     #socketio.run(app)
     webview.start(window)
+
+
 
 
