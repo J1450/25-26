@@ -53,6 +53,13 @@ $(document).ready(function () {
       this.currentScenario = scenarioNumber;
       logInfo(`Loading scenario ${scenarioNumber}`);
       
+      // Clear all existing countdowns
+      categories.forEach(category => {
+        if (this.taskCounts[category] && this.taskCounts[category].interval) {
+          clearInterval(this.taskCounts[category].interval);
+        }
+      });
+    
       // Reset all progress and clear tasks
       categories.forEach(category => {
         const container = document.getElementById(`${category.toLowerCase()}-tasks`);
@@ -95,8 +102,8 @@ $(document).ready(function () {
               }
             });
     
-            // Reattach event listeners for all buttons
-            this.reattachEventListeners();
+            // Start countdowns for all tasks
+            this.startCountdownForTasks();
           } else {
             logError('Failed to load scenario tasks:', response.message);
           }
@@ -244,13 +251,61 @@ $(document).ready(function () {
         }
       });
     }
+
+    startCountdown() {
+      categories.forEach(category => {
+        const progressBar = document.getElementById(`progress-bar-${category.toLowerCase()}`);
+        const timerLabel = document.getElementById(`timer-${category.toLowerCase()}`);
+        const duration = 20; // 20 seconds
+        let remainingTime = duration;
+    
+        if (progressBar && timerLabel) {
+          // Reset progress bar and timer
+          progressBar.style.width = '100%';
+          timerLabel.textContent = `${remainingTime}s`;
+    
+          // Start the countdown
+          const interval = setInterval(() => {
+            remainingTime--;
+            const progressPercentage = (remainingTime / duration) * 100;
+            progressBar.style.width = `${progressPercentage}%`;
+            timerLabel.textContent = `${remainingTime}s`;
+    
+            // Stop the countdown when time is up
+            if (remainingTime <= 0) {
+              clearInterval(interval);
+              timerLabel.textContent = 'Time Up!';
+              progressBar.style.backgroundColor = '#ff4444'; // Change color to red
+            }
+          }, 1000); // Update every second
+    
+          // Store the interval ID so it can be cleared when switching scenarios
+          this.taskCounts[category].interval = interval;
+        }
+      });
+    }
+
+    startCountdownForTasks() {
+      categories.forEach(category => {
+        const taskContainer = document.getElementById(`${category.toLowerCase()}-tasks`);
+        const progressBar = document.getElementById(`progress-bar-${category.toLowerCase()}`);
+        const timerLabel = document.getElementById(`timer-${category.toLowerCase()}`);
+        const tasks = taskContainer.getElementsByClassName('task-item');
+  
+        if (tasks.length > 0) {
+          const firstTask = tasks[0]; // Get the first task
+          if (firstTask.style.display !== 'none') {
+            this.startCountdown(category, progressBar, timerLabel);
+          }
+        }
+      });
+    }
   }
 
   // Initialize TaskManager when on code blue page
   if (document.getElementById('medications-tasks')) {
     const taskManager = new TaskManager();
 
-    // Update task completion handlers
     function handleTaskUpdate(category) {
       logInfo(`Attempting to update task for ${category}`);
       $.ajax({
@@ -265,6 +320,7 @@ $(document).ready(function () {
           if (response.success) {
             if (taskManager.completeTask(category)) {
               logInfo(`Successfully completed task for ${category}`);
+              taskManager.startCountdown(category); // Start the countdown for the next task
             } else {
               logError(`Failed to complete task for ${category}`);
             }

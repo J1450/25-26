@@ -26,6 +26,7 @@
         <h2>Provider 1</h2>
         <div class="progress-container">
           <div class="progress-bar" id="progress-bar-medications"></div>
+          <span class="progress-timer" id="timer-medications">20s</span>
         </div>
         <div class="task-container" id="medications-tasks">
           {% for step in tasks[0]['Medications']['steps'] %}
@@ -43,6 +44,7 @@
         <h2>Provider 2</h2>
         <div class="progress-container">
           <div class="progress-bar" id="progress-bar-compressions"></div>
+          <span class="progress-timer" id="timer-compressions">20s</span>
         </div>
         <div class="task-container" id="compressions-tasks">
           {% for step in tasks[0]['Compressions']['steps'] %}
@@ -60,6 +62,7 @@
         <h2>Provider 3</h2>
         <div class="progress-container">
           <div class="progress-bar" id="progress-bar-airways"></div>
+          <span class="progress-timer" id="timer-airways">20s</span>
         </div>
         <div class="task-container" id="airways-tasks">
           {% for step in tasks[0]['Airways']['steps'] %}

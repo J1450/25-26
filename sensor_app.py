@@ -250,7 +250,6 @@ def obtain_status():
         scenario = int(request.form.get('scenario'))
         category = request.form.get('category')
         
-        # Handle request for all categories
         if category == 'all':
             if scenario in tasks:
                 scenario_tasks = {}
@@ -259,37 +258,13 @@ def obtain_status():
                         'steps': tasks[scenario][cat]['steps'],
                         'count': tasks[scenario][cat]['count']
                     }
-                    # Send drawer signal for pending tasks
-                    if tasks[scenario][cat]['count'] < len(tasks[scenario][cat]['steps']):
-                        current_step = tasks[scenario][cat]['steps'][tasks[scenario][cat]['count']][0]
-                        if "Place IV" in current_step or "Place Oxygen" in current_step:
-                            arduino.write("1,{}\n".format(current_step).encode())
-                        elif "Give Epi" in current_step:
-                            arduino.write("2,{}\n".format(current_step).encode())
-                        elif "Give Amiodarone" in current_step:
-                            arduino.write("3,{}\n".format(current_step).encode())
-                        elif "Give Bicarbonate" in current_step:
-                            arduino.write("4,{}\n".format(current_step).encode())
-                
                 return jsonify({
                     'success': True,
                     'tasks': scenario_tasks
                 })
             return jsonify({'success': False, 'message': 'Scenario not found'}), 404
         
-        # Handle single category request
-        if scenario in tasks and category in tasks[scenario]:
-            step_info = tasks[scenario][category]
-            if step_info['count'] < len(step_info['steps']):
-                step = step_info['steps'][step_info['count']]
-                return jsonify({
-                    'success': True,
-                    'step': step,
-                    'remaining_steps': step_info['steps'][step_info['count']:]
-                })
-            return jsonify({'success': False, 'message': 'All tasks completed'}), 200
-        
-        return jsonify({'success': False, 'message': 'Scenario or category not found'}), 404
+        return jsonify({'success': False, 'message': 'Invalid category'}), 404
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 500
 
