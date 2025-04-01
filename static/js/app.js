@@ -112,12 +112,30 @@ $(document).ready(function () {
   // Task Management
   class TaskManager {
     constructor() {
-      this.currentScenario = currentScenario;
+      // Get the scenario number from URL parameters
+      const urlParams = new URLSearchParams(window.location.search);
+      this.currentScenario = parseInt(urlParams.get('scenario')) || 0;
+      logInfo(`Initializing TaskManager with scenario: ${this.currentScenario}`);
+      
       this.taskCounts = {};
       this.initializeTasks();
       this.setupQuestionPrompt();
+      
+      // Log all visible tasks and their states
+      categories.forEach(category => {
+        const container = document.getElementById(`${category.toLowerCase()}-tasks`);
+        if (container) {
+          const tasks = container.getElementsByClassName('task-item');
+          logInfo(`Category ${category} has ${tasks.length} tasks`);
+          Array.from(tasks).forEach((task, index) => {
+            logInfo(`Task ${index + 1}: "${task.textContent.trim()}" (visible: ${task.style.display !== 'none'})`);
+          });
+        }
+      });
+      
       // Start timers immediately for initial scenario
       setTimeout(() => {
+        logInfo('Starting initial countdowns for all tasks');
         this.startCountdownForTasks();
       }, 100);
       
@@ -200,22 +218,54 @@ $(document).ready(function () {
           newScenario = 2; // Normal Sinus
         }
 
-        // Load the new scenario after a short delay
-        setTimeout(() => {
-          const container = document.getElementById('questions-container');
-          if (container) {
-            container.style.display = 'none';
+        // Stop CPR lights before loading new scenario
+        $.ajax({
+          url: '/update_status',
+          type: 'POST',
+          data: {
+            scenario: this.currentScenario,
+            category: 'Compressions',
+            action: 'cpr_stop'
+          },
+          success: (response) => {
+            logInfo('CPR lights stopped before scenario transition');
+            // Load the new scenario after a short delay
+            setTimeout(() => {
+              const container = document.getElementById('questions-container');
+              if (container) {
+                container.style.display = 'none';
+              }
+              this.loadScenario(newScenario);
+              
+              // Reset answers for next time
+              this.answers = {};
+              
+              // Schedule next question prompt in 15 seconds
+              setTimeout(() => {
+                this.showQuestions();
+              }, 15000);
+            }, 1000);
+          },
+          error: (error) => {
+            logError('Error stopping CPR lights before transition:', error);
+            // Still proceed with scenario transition even if stopping CPR fails
+            setTimeout(() => {
+              const container = document.getElementById('questions-container');
+              if (container) {
+                container.style.display = 'none';
+              }
+              this.loadScenario(newScenario);
+              
+              // Reset answers for next time
+              this.answers = {};
+              
+              // Schedule next question prompt in 15 seconds
+              setTimeout(() => {
+                this.showQuestions();
+              }, 15000);
+            }, 1000);
           }
-          this.loadScenario(newScenario);
-          
-          // Reset answers for next time
-          this.answers = {};
-          
-          // Schedule next question prompt in 15 seconds
-          setTimeout(() => {
-            this.showQuestions();
-          }, 15000);
-        }, 1000);
+        });
       }
     }
 
@@ -244,7 +294,30 @@ $(document).ready(function () {
         this.updateProgressBar(category);
       });
     
-      // Load new tasks for the scenario
+      // Stop CPR lights when transitioning scenarios
+      $.ajax({
+        url: '/update_status',
+        type: 'POST',
+        data: {
+          scenario: scenarioNumber,  // Use the new scenario number
+          category: 'Compressions',
+          action: 'cpr_stop'
+        },
+        success: (response) => {
+          logInfo('CPR lights stopped during scenario transition');
+          // Only load new tasks after CPR lights are stopped
+          this.loadNewTasks(scenarioNumber);
+        },
+        error: (error) => {
+          logError('Error stopping CPR lights during transition:', error);
+          // Still load new tasks even if stopping CPR fails
+          this.loadNewTasks(scenarioNumber);
+        }
+      });
+    }
+
+    // Helper method to load new tasks
+    loadNewTasks(scenarioNumber) {
       $.ajax({
         url: '/obtain_status',
         type: 'POST',
@@ -255,6 +328,20 @@ $(document).ready(function () {
         success: (response) => {
           logInfo('Received scenario data:', response);
           if (response.success && response.tasks) {
+            // First, clear all existing tasks and timers
+            categories.forEach(category => {
+              const container = document.getElementById(`${category.toLowerCase()}-tasks`);
+              if (container) {
+                container.innerHTML = ''; // Clear existing tasks
+              }
+              // Clear any existing timer
+              if (this.taskCounts[category] && this.taskCounts[category].interval) {
+                clearInterval(this.taskCounts[category].interval);
+                this.taskCounts[category].interval = null;
+              }
+            });
+
+            // Then add new tasks
             categories.forEach(category => {
               const container = document.getElementById(`${category.toLowerCase()}-tasks`);
               if (container && response.tasks[category]) {
@@ -267,13 +354,31 @@ $(document).ready(function () {
                   taskElement.dataset.step = task[1];
                   container.appendChild(taskElement);
                 });
+                
+                // Ensure progress bar is visible
+                const progressContainer = document.getElementById(`progress-container-${category.toLowerCase()}`);
+                const progressBar = document.getElementById(`progress-bar-${category.toLowerCase()}`);
+                if (progressContainer) {
+                  progressContainer.style.display = 'block';
+                  logInfo(`Progress container for ${category} is visible`);
+                }
+                if (progressBar) {
+                  progressBar.style.display = 'block';
+                  progressBar.style.width = '100%';
+                  progressBar.style.backgroundColor = '#4CAF50';
+                  logInfo(`Progress bar for ${category} is visible and initialized`);
+                }
+                
                 // Reinitialize task tracking
                 this.initializeCategory(category);
               }
             });
     
-            // Start countdowns for all tasks
+            // Start countdowns for all tasks with a slight delay to ensure DOM is ready
+            setTimeout(() => {
+              logInfo('Starting countdowns after loading new tasks');
             this.startCountdownForTasks();
+            }, 100);
           } else {
             logError('Failed to load scenario tasks:', response.message);
           }
@@ -304,6 +409,21 @@ $(document).ready(function () {
             };
           })
         };
+        
+        // Ensure progress bar is visible and initialized
+        const progressContainer = document.getElementById(`progress-container-${category.toLowerCase()}`);
+        const progressBar = document.getElementById(`progress-bar-${category.toLowerCase()}`);
+        if (progressContainer) {
+          progressContainer.style.display = 'block';
+          logInfo(`Progress container for ${category} is visible in initializeCategory`);
+        }
+        if (progressBar) {
+          progressBar.style.display = 'block';
+          progressBar.style.width = '100%';
+          progressBar.style.backgroundColor = '#4CAF50';
+          logInfo(`Progress bar for ${category} is visible and initialized in initializeCategory`);
+        }
+        
         logInfo(`Initialized ${category} with ${tasks.length} tasks`);
         this.updateProgressBar(category);
       }
@@ -337,14 +457,21 @@ $(document).ready(function () {
       if (categoryData && categoryData.completed < categoryData.total) {
         const currentTaskData = categoryData.tasks[categoryData.completed];
         if (currentTaskData && !currentTaskData.completed) {
+          const currentTask = currentTaskData.element.textContent.trim();
+          logInfo(`Attempting to complete task: "${currentTask}" in category: ${category}`);
+          
           // Check if completing a CPR task and send stop signal
-          if (currentTaskData.element.textContent.trim() === 'CPR') {
+          if (currentTask === 'CPR' && category === 'Compressions') {
             logInfo('Attempting to stop CPR lights');
+            // Set flag to prevent starting CPR lights during completion
+            this.isCompletingCPR = true;
+            
             // Send stop signal to Arduino and wait for confirmation
             let retryCount = 0;
             const maxRetries = 3;
             
             const attemptStopCPR = () => {
+              logInfo(`Sending CPR stop signal (attempt ${retryCount + 1}/${maxRetries})`);
               $.ajax({
                 url: '/update_status',
                 type: 'POST',
@@ -356,6 +483,7 @@ $(document).ready(function () {
                 success: (response) => {
                   logInfo('CPR stop response:', response);
                   if (response.success) {
+                    logInfo('CPR stop signal successful, proceeding with task completion');
                     // Only proceed with task completion after successful signal
                     this.finishTaskCompletion(category, categoryData, currentTaskData);
                     // Start new countdown for next task if any
@@ -371,7 +499,11 @@ $(document).ready(function () {
                     setTimeout(attemptStopCPR, 100);
                   } else {
                     logError('Failed to stop CPR lights after multiple attempts');
+                    // Still complete the task even if we couldn't stop the lights
+                    this.finishTaskCompletion(category, categoryData, currentTaskData);
                   }
+                  // Clear the flag after completion or failure
+                  this.isCompletingCPR = false;
                 },
                 error: (error) => {
                   logError('Error stopping CPR lights:', error);
@@ -382,7 +514,11 @@ $(document).ready(function () {
                     setTimeout(attemptStopCPR, 100);
                   } else {
                     logError('Failed to stop CPR lights after multiple attempts');
+                    // Still complete the task even if we couldn't stop the lights
+                    this.finishTaskCompletion(category, categoryData, currentTaskData);
                   }
+                  // Clear the flag after completion or failure
+                  this.isCompletingCPR = false;
                 }
               });
             };
@@ -391,6 +527,7 @@ $(document).ready(function () {
             attemptStopCPR();
             return true;
           } else {
+            logInfo(`Completing non-CPR task: "${currentTask}"`);
             // For non-CPR tasks, proceed normally
             this.finishTaskCompletion(category, categoryData, currentTaskData);
             // Start new countdown for next task if any
@@ -408,47 +545,42 @@ $(document).ready(function () {
 
     // Helper method to handle task completion
     finishTaskCompletion(category, categoryData, currentTaskData) {
-      // Mark the current task as completed
-      currentTaskData.completed = true;
-      currentTaskData.element.classList.add('completed');
-      currentTaskData.element.style.backgroundColor = '#e8f5e9';
-      currentTaskData.element.style.borderColor = '#81c784';
-      currentTaskData.element.style.color = '#2e7d32';
-
-      // Hide the current task
-      currentTaskData.element.style.display = 'none';
-
-      // Move to the next task
-      categoryData.completed++;
-      
-      // Check if this was the last task
-      if (categoryData.completed >= categoryData.total) {
-        // Hide timer and progress bar for completed categories
-        const lowerCategory = category.toLowerCase();
-        const timerElement = document.getElementById(`timer-${lowerCategory}`);
-        const progressBar = document.getElementById(`progress-bar-${lowerCategory}`);
-        const progressContainer = document.getElementById(`progress-container-${lowerCategory}`);
-        
-        if (timerElement) timerElement.style.display = 'none';
-        if (progressBar) progressBar.style.display = 'none';
-        if (progressContainer) progressContainer.style.display = 'none';
-        
-        // Clear any existing timer
-        if (this.taskCounts[category].interval) {
-          clearInterval(this.taskCounts[category].interval);
-          this.taskCounts[category].interval = null;
-        }
-      } else {
-        // Show next task if not the last one
-        const nextTaskData = categoryData.tasks[categoryData.completed];
-        nextTaskData.element.style.display = 'block';
-      }
-
-      // Update progress bar and record interaction
-      this.updateProgressBar(category);
-      this.recordInteraction(category, 'complete');
-
-      logInfo(`Completed task ${categoryData.completed} in ${category}`);
+          // Mark the current task as completed
+          currentTaskData.completed = true;
+          currentTaskData.element.classList.add('completed');
+          currentTaskData.element.style.backgroundColor = '#e8f5e9';
+          currentTaskData.element.style.borderColor = '#81c784';
+          currentTaskData.element.style.color = '#2e7d32';
+    
+          // Hide the current task
+          currentTaskData.element.style.display = 'none';
+    
+          // Move to the next task
+          categoryData.completed++;
+          
+          // Check if this was the last task
+          if (categoryData.completed >= categoryData.total) {
+        // Only hide timer when all tasks are completed
+            const lowerCategory = category.toLowerCase();
+            const timerElement = document.getElementById(`timer-${lowerCategory}`);
+            if (timerElement) timerElement.style.display = 'none';
+            
+            // Clear any existing timer
+            if (this.taskCounts[category].interval) {
+              clearInterval(this.taskCounts[category].interval);
+              this.taskCounts[category].interval = null;
+            }
+          } else {
+            // Show next task if not the last one
+            const nextTaskData = categoryData.tasks[categoryData.completed];
+            nextTaskData.element.style.display = 'block';
+          }
+    
+          // Update progress bar and record interaction
+          this.updateProgressBar(category);
+          this.recordInteraction(category, 'complete');
+    
+          logInfo(`Completed task ${categoryData.completed} in ${category}`);
     }
 
     undoTask(category) {
@@ -510,11 +642,29 @@ $(document).ready(function () {
       });
     }
 
+    startCountdownForTasks() {
+      logInfo('Starting countdowns for all tasks');
+      categories.forEach(category => {
+        const container = document.getElementById(`${category.toLowerCase()}-tasks`);
+        if (container) {
+          const tasks = container.getElementsByClassName('task-item');
+          const visibleTasks = Array.from(tasks).filter(task => task.style.display !== 'none');
+          logInfo(`Category ${category} has ${visibleTasks.length} visible tasks`);
+          visibleTasks.forEach((task, index) => {
+            logInfo(`Visible task ${index + 1}: "${task.textContent.trim()}"`);
+          });
+        }
+        this.startCountdown(category);
+      });
+    }
+
     startCountdown(category) {
       const lowerCategory = category.toLowerCase();
       const progressBar = document.getElementById(`progress-bar-${lowerCategory}`);
       const timerLabel = document.getElementById(`timer-${lowerCategory}`);
       const duration = 20; // 20 seconds
+
+      logInfo(`Starting countdown check for category: ${category} in scenario: ${this.currentScenario}`);
 
       // Clear any existing interval
       if (this.taskCounts[category] && this.taskCounts[category].interval) {
@@ -527,9 +677,28 @@ $(document).ready(function () {
       const hasRemainingTasks = tasks.length > 0;
       const currentTask = tasks[0] ? tasks[0].textContent.trim() : '';
 
+      logInfo(`Current task for ${category}: "${currentTask}" in scenario ${this.currentScenario}`);
+      logInfo(`Has remaining tasks: ${hasRemainingTasks}`);
+
       // Handle CPR task - send signal to Arduino
-      if (currentTask === 'CPR') {
-        logInfo('Starting CPR lights for task:', currentTask);
+      // Only start CPR lights if:
+      // 1. The current task is CPR
+      // 2. We're in the Compressions category (Provider 2)
+      // 3. We're not in the middle of completing a CPR task
+      // 4. The task is actually visible (current active task)
+      // 5. We're not already sending a CPR signal
+      // 6. The task is the first visible task in the list
+      if (currentTask === 'CPR' && 
+          category === 'Compressions' && 
+          !this.isCompletingCPR && 
+          tasks[0] && 
+          tasks[0].style.display !== 'none' &&
+          !this.isSendingCPRSignal &&
+          tasks[0] === tasks[0]) {  // Ensure it's the first visible task
+          
+        this.isSendingCPRSignal = true;
+        logInfo(`Starting CPR lights for task: "${currentTask}" in scenario ${this.currentScenario}`);
+        
         $.ajax({
           url: '/update_status',
           type: 'POST',
@@ -539,6 +708,7 @@ $(document).ready(function () {
             action: 'cpr_start'
           },
           success: (response) => {
+            this.isSendingCPRSignal = false;
             if (response.success) {
               logInfo('CPR lights started successfully');
             } else {
@@ -565,6 +735,7 @@ $(document).ready(function () {
             }
           },
           error: (error) => {
+            this.isSendingCPRSignal = false;
             logError('Error starting CPR lights:', error);
             // Retry once if failed
             setTimeout(() => {
@@ -580,81 +751,94 @@ $(document).ready(function () {
             }, 100);
           }
         });
+      } else if (currentTask === 'CPR') {
+        logInfo(`CPR task detected but conditions not met for starting lights:`, {
+          category,
+          isCompletingCPR: this.isCompletingCPR,
+          isSendingCPRSignal: this.isSendingCPRSignal,
+          isFirstVisibleTask: tasks[0] && tasks[0].style.display !== 'none'
+        });
       }
 
-      // Hide timer and progress bar for completed categories
-      if (!hasRemainingTasks) {
-        const progressContainer = document.getElementById(`progress-container-${lowerCategory}`);
-        if (timerLabel) timerLabel.style.display = 'none';
-        if (progressBar) progressBar.style.display = 'none';
-        if (progressContainer) progressContainer.style.display = 'none';
-        return;
-      }
+      // Define countdown tasks and ensure case-insensitive comparison
+      const countdownTasks = [
+        'Give Epi',
+        'Give Amiodarone',
+        'Give Bicarbonate',
+        'Shock',
+        'Give Epinephrine',
+        'Give Amiodarone',
+        'Give Sodium Bicarbonate',
+        'Defibrillate'
+      ];
 
-      // Only show countdown for specific tasks
-      const countdownTasks = ['Give Epi', 'Give Amiodarone', 'Give Bicarbonate', 'Shock'];
-      const shouldShowCountdown = countdownTasks.includes(currentTask);
+      // Log all tasks that should have countdowns
+      logInfo('Tasks that should have countdowns:', countdownTasks);
+      
+      const shouldShowCountdown = countdownTasks.some(task => {
+        const matches = currentTask.toLowerCase() === task.toLowerCase();
+        logInfo(`Comparing "${currentTask}" with "${task}": ${matches}`);
+        return matches;
+      });
+
+      logInfo(`Should show countdown for task "${currentTask}": ${shouldShowCountdown}`);
 
       if (progressBar && timerLabel) {
-        // Reset styles
+        // Always show progress bar for all tasks
         progressBar.style.transition = 'none';
         progressBar.style.width = '100%';
-        progressBar.style.backgroundColor = '#4CAF50';
+        progressBar.style.backgroundColor = '#4CAF50';  // Start with green
         progressBar.style.display = 'block';
         
-        // Show timer for countdown tasks
+        // Show/hide timer based on current task
         timerLabel.style.display = shouldShowCountdown ? 'block' : 'none';
+        logInfo(`Timer visibility set to: ${shouldShowCountdown ? 'visible' : 'hidden'}`);
         
         // Force reflow
         progressBar.offsetHeight;
         
         // Add smooth transition
-        progressBar.style.transition = 'width 1s linear';
+        progressBar.style.transition = 'width 1s linear, background-color 0.3s ease';
         
         if (shouldShowCountdown) {
-          let remainingTime = duration;
-          timerLabel.textContent = `${remainingTime}s`;
+          logInfo(`Starting countdown for task: ${currentTask} in scenario ${this.currentScenario}`);
+        let remainingTime = duration;
+        timerLabel.textContent = `${remainingTime}s`;
 
-          // Start the countdown
-          const interval = setInterval(() => {
-            remainingTime--;
-            if (remainingTime >= 0) {
-              const progressPercentage = (remainingTime / duration) * 100;
-              progressBar.style.width = `${progressPercentage}%`;
-              timerLabel.textContent = `${remainingTime}s`;
-            } else {
-              clearInterval(interval);
-              timerLabel.textContent = 'Time Up!';
-              progressBar.style.backgroundColor = '#ff4444';
-            }
-          }, 1000);
+        // Start the countdown
+        const interval = setInterval(() => {
+          remainingTime--;
+          if (remainingTime >= 0) {
+            const progressPercentage = (remainingTime / duration) * 100;
+            progressBar.style.width = `${progressPercentage}%`;
+            timerLabel.textContent = `${remainingTime}s`;
 
-          // Store the interval ID
-          this.taskCounts[category].interval = interval;
-        }
-      }
-    }
-
-    startCountdownForTasks() {
-      categories.forEach(category => {
-        const taskContainer = document.getElementById(`${category.toLowerCase()}-tasks`);
-        if (taskContainer) {
-          const tasks = taskContainer.getElementsByClassName('task-item');
-          if (tasks.length > 0) {
-            const firstTask = tasks[0];
-            if (firstTask.style.display !== 'none') {
-              // Clear any existing timer
-              if (this.taskCounts[category] && this.taskCounts[category].interval) {
-                clearInterval(this.taskCounts[category].interval);
+              // Update color based on time remaining
+              if (remainingTime <= 7) {  // Last 7 seconds
+                progressBar.style.backgroundColor = '#ff4444';  // Red
+              } else if (remainingTime <= 14) {  // 8-14 seconds
+                progressBar.style.backgroundColor = '#ffeb3b';  // Yellow
+              } else {  // 15-20 seconds
+                progressBar.style.backgroundColor = '#4CAF50';  // Green
               }
-              // Start new timer
-              setTimeout(() => {
-                this.startCountdown(category);
-              }, 50);
-            }
+          } else {
+            clearInterval(interval);
+            timerLabel.textContent = 'Time Up!';
+              progressBar.style.backgroundColor = '#ff4444';  // Red when time is up
+              logInfo(`Countdown finished for task: ${currentTask}`);
           }
+        }, 1000);
+
+        // Store the interval ID
+        this.taskCounts[category].interval = interval;
+        } else {
+          // For non-countdown tasks, keep progress bar at 100% and green
+          progressBar.style.width = '100%';
+          progressBar.style.backgroundColor = '#4CAF50';
         }
-      });
+      } else {
+        logInfo(`Progress bar or timer label not found for category ${category}`);
+      }
     }
   }
 
@@ -665,7 +849,7 @@ $(document).ready(function () {
     window.taskManager = taskManager;
 
     function handleTaskUpdate(category) {
-      logInfo(`Attempting to update task for ${category}`);
+      logInfo(`Attempting to update task for ${category} in scenario ${taskManager.currentScenario}`);
       
       // Clear existing timer immediately
       if (taskManager.taskCounts[category] && taskManager.taskCounts[category].interval) {

@@ -436,6 +436,21 @@ button:hover {
     background-color: #45a049;
 }
 
+.extra-large-button {
+    font-size: 75px;
+    padding: 15px 30px;
+    margin: 10px 0;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.extra-large-button:hover {
+    background-color: #45a049;
+}
+
 /* Progress bar colors based on new thresholds */
 .task-manager {
     updateProgressBar(category) {

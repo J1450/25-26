@@ -102,20 +102,23 @@ def index():
 
 @app.route('/start_code')
 def start_code():
-    global interactions
+    global interactions, cpr_active
     try:
         # Get the initial scenario from query parameters, default to 0 (Asystole)
         initial_scenario = int(request.args.get('scenario', '0'))
+        
+        # Stop CPR lights if they're active
+        if cpr_active:
+            print("Stopping CPR lights before starting new scenario")
+            arduino.write("STOP\n".encode())
+            arduino.flush()
+            cpr_active = False
         
         # Record the start of code blue
         now = datetime.now()
         scenario_names = {0: 'Asystole', 1: 'Ventricular Fibrillation', 2: 'Normal Sinus'}
         scenario_name = scenario_names.get(initial_scenario, f'Scenario {initial_scenario}')
         interactions.append([f"Code Initiated - {scenario_name}", now.strftime("%m/%d/%Y %H:%M:%S")])
-        
-        # Send START signal to Arduino
-        arduino.write("START\n".encode())
-        arduino.flush()  # Ensure the command is sent
         
         # Reset task counts for the selected scenario
         if initial_scenario in tasks:
@@ -310,26 +313,35 @@ def update_drawer_lights(scenario):
             elif "Give Bicarbonate" in next_step:
                 arduino.write("4,{}\n".format(next_step).encode())
 
+# Add global variable for CPR state
+cpr_active = False
+
 @app.route('/update_status', methods=['POST'])
 def update_status():
-    global stepNumber
+    global stepNumber, cpr_active
     category = request.form.get('category')
     scenario = int(request.form.get('scenario', 0))
     action = request.form.get('action')
     
     try:
+        print(f"Received update_status request - Category: {category}, Scenario: {scenario}, Action: {action}, CPR Active: {cpr_active}")
+        
         # Handle CPR task signals
         if action == 'cpr_start':
             print("Starting CPR lights")  # Debug log
+            cpr_active = True
             # Send START signal to Arduino for CPR lights
             arduino.write("START\n".encode())
             arduino.flush()  # Force flush the buffer
             time.sleep(0.1)  # Small delay to ensure command is sent
+            print("START signal sent to Arduino")
             return jsonify({'success': True})
             
         elif action == 'cpr_stop':
             print("Stopping CPR lights")  # Debug log
+            cpr_active = False
             # Send STOP signal to Arduino for CPR lights and wait for confirmation
+            print("Sending STOP signal to Arduino")
             arduino.write("STOP\n".encode())
             arduino.flush()  # Force flush the buffer
             
@@ -338,11 +350,13 @@ def update_status():
             while time.time() - start_time < 1.0:  # 1 second timeout
                 if arduino.in_waiting:
                     response = arduino.readline().decode().strip()
-                    print(f"Received response: {response}")  # Debug log
+                    print(f"Received response from Arduino: {response}")  # Debug log
                     if response == "CPR_STOPPED":
+                        print("Received CPR_STOPPED confirmation")
                         return jsonify({'success': True})
                 time.sleep(0.1)
             
+            print("Timeout waiting for CPR_STOPPED confirmation")
             # If we didn't get confirmation, return failure
             return jsonify({
                 'success': False,
