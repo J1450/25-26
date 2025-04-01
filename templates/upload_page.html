@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Upload to EMR</title>
+    <link rel="stylesheet" href="{{url_for('static', filename = 'css/styles.css')}}">
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f8f9fa;
+        }
+        .upload-container {
+            text-align: center;
+        }
+        .btn-upload {
+            padding: 15px 30px;
+            font-size: 18px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .btn-upload:hover {
+            background-color: #218838;
+        }
+    </style>
+</head>
+<body>
+    <div class="upload-container">
+        <button class="btn-upload" onclick="window.open('/generate_pdf')">Upload to EMR</button>
+    </div>
+</body>
+</html> 

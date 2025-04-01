@@ -21,10 +21,12 @@ $(document).ready(function () {
     container.style.left = '0';
     container.style.right = '0';
     container.style.padding = '20px';
-    container.style.backgroundColor = '#f8f9fa';
-    container.style.borderTop = '1px solid #dee2e6';
+    // container.style.backgroundColor = '#f8f9fa';
+    container.style.backgroundColor = '#ffffff';
+    // container.style.borderTop = '1px solid #dee2e6';
     container.style.textAlign = 'center';
     container.style.zIndex = '1000';
+    container.style.fontSize = '50px';
 
     container.innerHTML = `
       <div class="question" id="pulse-question" style="margin-bottom: 15px;">
@@ -920,11 +922,11 @@ $(document).ready(function () {
     }, 1000);
   }
 
-  // Close window functionality
+  // Exit button functionality
   const closeButton = document.getElementById('close_window');
   if (closeButton) {
     closeButton.addEventListener('click', () => {
-      fetch('/close_window', { method: 'POST' });
+      window.location.href = '/upload_page';
     });
   }
 

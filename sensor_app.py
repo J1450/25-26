@@ -464,6 +464,10 @@ def connect():
 def disconnect():
     print('Client disconnected',  request.sid)
 
+@app.route('/upload_page')
+def upload_page():
+    return render_template('upload_page.html')
+
 if __name__ == '__main__':
     #socketio.run(app)
     webview.start(window)
