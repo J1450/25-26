@@ -17,8 +17,9 @@
         }
         .btn-upload {
             padding: 15px 30px;
-            font-size: 18px;
-            background-color: #28a745;
+            font-size: 75px;
+            margin: 10px 0;
+            background-color: #4CAF50;
             color: white;
             border: none;
             border-radius: 5px;
@@ -26,13 +27,29 @@
             transition: background-color 0.3s;
         }
         .btn-upload:hover {
-            background-color: #218838;
+            background-color: #45A049;
         }
     </style>
 </head>
-<body>
-    <div class="upload-container">
-        <button class="btn-upload" onclick="window.open('/generate_pdf')">Upload to EMR</button>
-    </div>
-</body>
+    <body>
+        <!-- <div class="upload-container">
+            <button class="btn-upload" onclick="window.open('/generate_pdf')">Upload to EMR</button>
+        </div> -->
+
+        <button class="btn-upload" onclick="handleUploadAndExit()">Upload to EMR</button>
+
+        <script>
+        function handleUploadAndExit() {
+            // Open PDF generation in a new tab
+            window.open('/generate_pdf', '_blank');
+
+            // Then tell server to exit, similar to close_window behavior
+            fetch('/close_window', { method: 'POST' })
+            .then(() => {
+                // Optionally, close the current window or redirect
+                window.location.href = '/';  // or window.close() if this was opened as a popup
+            });
+        }
+        </script>
+    </body>
 </html> 
