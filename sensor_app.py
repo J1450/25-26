@@ -122,6 +122,7 @@ def start_code():
         
         # Reset task counts for the selected scenario
         if initial_scenario in tasks:
+            update_drawer_lights(initial_scenario)
             scenario_tasks = tasks[initial_scenario]
             # Reset counts for each category
             for category in scenario_tasks:
@@ -246,7 +247,7 @@ def generate_pdf():
         </body>
         </html>
         '''
-        
+         
         # Generate PDF with a specific filename
         filename = f'code_blue_record_{datetime.now().strftime("%Y%m%d_%H%M%S")}.pdf'
         
@@ -295,23 +296,45 @@ def obtain_status():
         return jsonify({'success': False, 'message': str(e)}), 500
 
 def update_drawer_lights(scenario):
-    # First, turn off all drawer lights
-    for i in range(1, 5):
-        arduino.write(f"{i},OFF\n".encode())
+    # # First, turn off all drawer lights
+    # for i in range(1, 5):
+    #     arduino.write(f"{i},OFF\n".encode())
     
     # Then turn on lights for all pending tasks
     for cat in tasks[scenario]:
         cat_info = tasks[scenario][cat]
+        print("count")
+        print(cat_info['count'])
+        print("length")
+        print(len(cat_info['steps']))
         if cat_info['count'] < len(cat_info['steps']):
-            next_step = cat_info['steps'][cat_info['count']][0]
+            next_step = cat_info['steps'][cat_info['count'] - 1][0]
+            print("Next step")
+            print(next_step)
+            # if "Place IV" in next_step or "Place Oxygen" in next_step:
+            #     arduino.write("1,{}\n".format(next_step).encode())
+            # elif "Give Epi" in next_step: 
+            #     arduino.write("2,{}\n".format(next_step).encode())
+            # elif "Give Amiodarone" in next_step:
+            #     arduino.write("3,{}\n".format(next_step).encode())
+            # elif "Give Bicarbonate" in next_step:
+            #     arduino.write("4,{}\n".format(next_step).encode())
             if "Place IV" in next_step or "Place Oxygen" in next_step:
-                arduino.write("1,{}\n".format(next_step).encode())
+                arduino.write("DRAWER1\n".encode())
+                arduino.flush()
+                print("1")
             elif "Give Epi" in next_step:
-                arduino.write("2,{}\n".format(next_step).encode())
+                arduino.write("DRAWER2\n".encode())
+                arduino.flush()
+                print("2")
             elif "Give Amiodarone" in next_step:
-                arduino.write("3,{}\n".format(next_step).encode())
+                arduino.write("DRAWER3\n".encode())
+                arduino.flush()
+                print("3")
             elif "Give Bicarbonate" in next_step:
-                arduino.write("4,{}\n".format(next_step).encode())
+                arduino.write("DRAWER4\n".encode())
+                arduino.flush()
+                print("4")
 
 # Add global variable for CPR state
 cpr_active = False
@@ -367,15 +390,15 @@ def update_status():
         if category in tasks[scenario]:
             step_info = tasks[scenario][category]
             if step_info['count'] < len(step_info['steps']):
-                current_task = step_info['steps'][step_info['count']][0]
+                current_task = step_info['steps'][step_info['count'] - 1][0]
+                # Update drawer lights if needed
+                update_drawer_lights(scenario)
+
                 now = datetime.now()
                 interactions.append([f"{category}: {current_task}", now.strftime("%m/%d/%Y %H:%M:%S")])
                 
                 # Update task count
                 step_info['count'] += 1
-                
-                # Update drawer lights if needed
-                update_drawer_lights(scenario)
                 
                 return jsonify({
                     'success': True,
