@@ -82,6 +82,8 @@ void loop() {
   if (Serial.available() > 0) {
     String data = Serial.readStringUntil('\n');
     data.trim();  // Remove any whitespace
+
+    Serial.println(data);
     
     if (data == "START") {
       cprActive = true;
@@ -97,19 +99,20 @@ void loop() {
       // Send confirmation back
       Serial.println("CPR_STOPPED");
     }
-    else if (data == "DRAWER1" && isPresent1) {
+    
+    if (data.indexOf("DRAWER1") >= 0 && isPresent1) {
       activateSection(1);
       Serial.println("Drawer 1 activated");
     }
-    else if (data == "DRAWER2" && isPresent2) {
+    if (data.indexOf("DRAWER2") >= 0 && isPresent2) {
       activateSection(2);
       Serial.println("Drawer 2 activated");
     }
-    else if (data == "DRAWER3" && isPresent3) {
+    if (data.indexOf("DRAWER3") >= 0 && isPresent3) {
       activateSection(3);
       Serial.println("Drawer 3 activated");
     }
-    else if (data == "DRAWER4" && isPresent4) {
+    if (data.indexOf("DRAWER4") >= 0 && isPresent4) {
       activateSection(4);
       Serial.println("Drawer 4 activated");
     }
@@ -155,11 +158,17 @@ void activateSection(int section) {
   lastSection = section;
   int start = (section - 1) * 8 + 7;
 
-  for (int i = 0; i < NUM_LEDS_DRAWERS; i++) {
+  Serial.println(section);
+
+  for (int i = 0; i < NUM_LEDS_DRAWERS; i++) { 
     if (i >= start && i < start + 8) {
-      leds_drawer[i] = CRGB::Red;
+      if (section == 1) leds_drawer[i] = CRGB::Red;
+      else if (section == 2) leds_drawer[i] = CRGB::Green;
+      else if (section == 3) leds_drawer[i] = CRGB::Blue;
+      else if (section == 4) leds_drawer[i] = CRGB::Yellow;
     } else {
-      leds_drawer[i] = CRGB::Black;
+      // leds_drawer[i] = CRGB::Black;
+      leds_drawer[i] = leds_drawer[i];
     }
   }
   FastLED.show();

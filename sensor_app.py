@@ -296,45 +296,56 @@ def obtain_status():
         return jsonify({'success': False, 'message': str(e)}), 500
 
 def update_drawer_lights(scenario):
+    arduino.flush() 
     # # First, turn off all drawer lights
     # for i in range(1, 5):
     #     arduino.write(f"{i},OFF\n".encode())
     
     # Then turn on lights for all pending tasks
+    # Each provider in the scenario
+    print("----------UPDATE DRAWER LIGHTS IS CALLED----------")
+    print(scenario)
+    message = ""
     for cat in tasks[scenario]:
+        # Every task that the provider needs to do in order
         cat_info = tasks[scenario][cat]
-        print("count")
-        print(cat_info['count'])
-        print("length")
-        print(len(cat_info['steps']))
+
+        print("Cat info")
+        print(cat_info)
+        
+        # if we still have tasks left to do for that provider
         if cat_info['count'] < len(cat_info['steps']):
-            next_step = cat_info['steps'][cat_info['count'] - 1][0]
+            
+            next_step = cat_info['steps'][cat_info['count']][0]
             print("Next step")
             print(next_step)
-            # if "Place IV" in next_step or "Place Oxygen" in next_step:
-            #     arduino.write("1,{}\n".format(next_step).encode())
-            # elif "Give Epi" in next_step: 
-            #     arduino.write("2,{}\n".format(next_step).encode())
-            # elif "Give Amiodarone" in next_step:
-            #     arduino.write("3,{}\n".format(next_step).encode())
-            # elif "Give Bicarbonate" in next_step:
-            #     arduino.write("4,{}\n".format(next_step).encode())
+            
+        
             if "Place IV" in next_step or "Place Oxygen" in next_step:
-                arduino.write("DRAWER1\n".encode())
-                arduino.flush()
-                print("1")
-            elif "Give Epi" in next_step:
-                arduino.write("DRAWER2\n".encode())
-                arduino.flush()
-                print("2")
-            elif "Give Amiodarone" in next_step:
-                arduino.write("DRAWER3\n".encode())
-                arduino.flush()
-                print("3")
-            elif "Give Bicarbonate" in next_step:
-                arduino.write("DRAWER4\n".encode())
-                arduino.flush()
-                print("4")
+                message += "DRAWER1"
+                # arduino.write("DRAWER1\n".encode())
+                # arduino.flush()
+                # print("1")
+            if "Give Epi" in next_step:
+                message += "DRAWER2"
+                # arduino.write("DRAWER2\n".encode())
+                # arduino.flush()
+                # print("2")
+            if "Give Amiodarone" in next_step:
+                message += "DRAWER3"
+                # arduino.write("DRAWER3\n".encode())
+                # arduino.flush()
+                # print("3")
+            if "Give Bicarbonate" in next_step:
+                message += "DRAWER4"
+                # arduino.write("DRAWER4\n".encode())
+                # arduino.flush()
+                # print("4")
+
+    message += "\n"
+    if (message != "\n"): print(message)
+    arduino.write(message.encode())
+    arduino.flush()
 
 # Add global variable for CPR state
 cpr_active = False
@@ -390,15 +401,16 @@ def update_status():
         if category in tasks[scenario]:
             step_info = tasks[scenario][category]
             if step_info['count'] < len(step_info['steps']):
+                # Update task count
+                step_info['count'] += 1 
+                
                 current_task = step_info['steps'][step_info['count'] - 1][0]
                 # Update drawer lights if needed
                 update_drawer_lights(scenario)
 
                 now = datetime.now()
                 interactions.append([f"{category}: {current_task}", now.strftime("%m/%d/%Y %H:%M:%S")])
-                
-                # Update task count
-                step_info['count'] += 1
+            
                 
                 return jsonify({
                     'success': True,
