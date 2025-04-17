@@ -19,6 +19,7 @@ My variables
 ledPosition = 0
 buttonClicks = 0
 stepNumber = 1
+oldScenario = 0
 stepNumbers = {'Asystole': 1,
                'Ventricular Fibrillation': 1,
                'Normal Sinus': 1}
@@ -276,6 +277,15 @@ def obtain_status():
     try:
         scenario = int(request.form.get('scenario'))
         category = request.form.get('category')
+
+        # if oldScenario != scenario:
+        #     scenario_tasks = tasks[scenario]
+        #     # Reset counts for each category
+        #     for category in scenario_tasks:
+        #         scenario_tasks[category]['count'] = 0
+        #     update_drawer_lights(scenario)
+        #     oldScenario = scenario
+
         
         if category == 'all':
             if scenario in tasks:
@@ -326,6 +336,11 @@ def update_drawer_lights(scenario):
                 # arduino.write("DRAWER1\n".encode())
                 # arduino.flush()
                 # print("1")
+            if "Place Oxygen" in next_step:
+                message += "DRAWER5"
+                # arduino.write("DRAWER1\n".encode())
+                # arduino.flush()
+                # print("1")
             if "Give Epi" in next_step:
                 message += "DRAWER2"
                 # arduino.write("DRAWER2\n".encode())
@@ -356,6 +371,19 @@ def update_status():
     category = request.form.get('category')
     scenario = int(request.form.get('scenario', 0))
     action = request.form.get('action')
+
+    global oldScenario
+    scenario = int(request.form.get('scenario', 0))
+    # detect real scenario change
+    if oldScenario is None or scenario != oldScenario:
+        # 1) reset counts for the new scenario
+        for cat in tasks[scenario]:
+            tasks[scenario][cat]['count'] = 0
+
+        # 2) update lights based on those fresh counts
+        update_drawer_lights(scenario)
+
+        oldScenario = scenario
     
     try:
         print(f"Received update_status request - Category: {category}, Scenario: {scenario}, Action: {action}, CPR Active: {cpr_active}")
@@ -506,7 +534,6 @@ def upload_page():
 if __name__ == '__main__':
     #socketio.run(app)
     webview.start(window)
-
 
 
 
