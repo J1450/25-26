@@ -43,6 +43,8 @@ bool isPresent3 = false;
 bool isPresent4 = false;
 bool isPresent5 = false;
 
+bool sawDrawer5 = false;
+
 int lastSection = 0;
 
 int hist[] = {0, 0, 0, 0, 0};
@@ -97,8 +99,11 @@ void loop() {
       Serial.println("CPR_STOPPED");
     }
     
-    if (data.indexOf("DRAWER1") >= 0 && isPresent1) {
-      hist[0] = 1;
+    // Drawer 5 is only present in the 1st scenario
+
+    if ((data.indexOf("DRAWER1") >= 0 && isPresent1) || (data.indexOf("DRAWER5") >= 0 && isPresent5)) {
+      // if (data.indexOf("DRAWER1") >= 0 && isPresent1) hist[0] = 1;
+      // if (data.indexOf("DRAWER5") >= 0 && isPresent5) hist[4] = 1;
       activateSection(1);
     }
     if (data.indexOf("DRAWER2") >= 0 && isPresent2) { 
@@ -126,10 +131,21 @@ void loop() {
     }
   }
 
-  if (hist[0] && !isPresent1) {
+  if ((!isPresent1 && !isPresent5) || (!isPresent1 && sawDrawer5)) {
     turnOffLeds(1);
+    sawDrawer5 = true;
     hist[0] = 0;
-  } if (hist[1] && !isPresent2) {
+    hist[4] = 0;
+  }
+  // if (hist[0] && !isPresent1) {
+  //   // turnOffLeds(1);
+  //   hist[0] = 0;
+  // } 
+  // if (hist[4] && !isPresent5) {
+  //   hist[4] = 0;
+  // }
+  
+  if (hist[1] && !isPresent2) {
     turnOffLeds(2);
     hist[1] = 0;
   } if (hist[2] && !isPresent3) {
