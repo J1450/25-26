@@ -331,7 +331,12 @@ def update_drawer_lights(scenario):
             print(next_step)
             
         
-            if "Place IV" in next_step or "Place Oxygen" in next_step:
+            # if "Place IV" in next_step or "Place Oxygen" in next_step:
+            #     message += "DRAWER1"
+            #     # arduino.write("DRAWER1\n".encode())
+            #     # arduino.flush()
+            #     # print("1")
+            if "Place IV" in next_step:
                 message += "DRAWER1"
                 # arduino.write("DRAWER1\n".encode())
                 # arduino.flush()

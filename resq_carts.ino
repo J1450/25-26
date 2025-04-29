@@ -1,18 +1,13 @@
-//www.elegoo.com
-//2016.12.08
-
-
 #include <FastLED.h>
 #include <math.h>
-
 
 #define LED_PIN     10
 #define NUM_LEDS    100  
 #define BPM         120
 
-#define NUM_LEDS_DRAWERS 48
+#define NUM_LEDS_DRAWERS 100
 #define DATA_PIN 6
-#define SENSOR_THRESHOLD 70
+#define SENSOR_THRESHOLD 30
 
 CRGB leds[NUM_LEDS];
 CRGB leds_drawer[NUM_LEDS_DRAWERS];
@@ -34,7 +29,7 @@ int fsrAnalogPin1 = 0;
 int fsrAnalogPin2 = 1;
 int fsrAnalogPin3 = 2;
 int fsrAnalogPin4 = 3;
-int fsrAnalogPin5 = 3;
+int fsrAnalogPin5 = 4;
 int fsrReading1;      
 int fsrReading2;
 int fsrReading3;      
@@ -47,11 +42,6 @@ bool isPresent2 = false;
 bool isPresent3 = false;
 bool isPresent4 = false;
 bool isPresent5 = false;
-
-// bool isPresent1 = true;
-// bool isPresent2 = true;
-// bool isPresent3 = true;
-// bool isPresent4 = true;
 
 int lastSection = 0;
 
@@ -91,21 +81,6 @@ void loop() {
   if (Serial.available() > 0) {
     String data = Serial.readStringUntil('\n');
     data.trim();  // Remove any whitespace
-
-    // Serial.println(data);
-
-    // if (data == "Scenario") {
-    //   Serial.println("New scenario");
-    //   hist[0] = 0;
-    //   hist[1] = 0;
-    //   hist[2] = 0;
-    //   hist[3] = 0;
-
-    //   isPresent1 = fsrReading1 >= SENSOR_THRESHOLD;
-    //   isPresent2 = fsrReading2 >= SENSOR_THRESHOLD;
-    //   isPresent3 = fsrReading3 >= SENSOR_THRESHOLD;
-    //   isPresent4 = fsrReading4 >= SENSOR_THRESHOLD;
-    // }
     
     if (data == "START") {
       cprActive = true;
@@ -125,25 +100,19 @@ void loop() {
     if (data.indexOf("DRAWER1") >= 0 && isPresent1) {
       hist[0] = 1;
       activateSection(1);
-      // Serial.println("Drawer 1 activated");
     }
     if (data.indexOf("DRAWER2") >= 0 && isPresent2) { 
       hist[1] = 1;
-      // Serial.println("DRAWER 2 COUNT");
-      // Serial.println(count);
       activateSection(2);
-      // Serial.println("Drawer 2 activated");
       count = count + 1;
     }
     if (data.indexOf("DRAWER3") >= 0 && isPresent3) {
       hist[2] = 1;
       activateSection(3);
-      // Serial.println("Drawer 3 activated");
     }
     if (data.indexOf("DRAWER4") >= 0 && isPresent4) {
       hist[3] = 1;
       activateSection(4);
-      // Serial.println("Drawer 4 activated");
     }
   }
 
@@ -157,43 +126,19 @@ void loop() {
     }
   }
 
-  // if (lastSection == 1 && !isPresent1) {
-  //   turnOffLeds();
-  // } else if (lastSection == 2 && !isPresent2) {
-  //   turnOffLeds();
-  // } else if (lastSection == 3 && !isPresent3) {
-  //   turnOffLeds();
-  // } else if (lastSection ==4 && !isPresent4) {
-  //   turnOffLeds();
-  // }
-
   if (hist[0] && !isPresent1) {
-    // Serial.println("Turn off drawer 1");
     turnOffLeds(1);
     hist[0] = 0;
   } if (hist[1] && !isPresent2) {
-    // Serial.println("Turn off drawer 2");
     turnOffLeds(2);
     hist[1] = 0;
   } if (hist[2] && !isPresent3) {
-    // Serial.println("Turn off drawer 3");
     turnOffLeds(3);
     hist[2] = 0;
   } if (hist[3] && !isPresent4) {
-    // Serial.println("Turn off drawer 4");
     turnOffLeds(4);
     hist[3] = 0;
   } 
-
-  // if (!isPresent1) {
-  //   turnOffLeds(1);
-  // } if (!isPresent2) {
-  //   turnOffLeds(2);
-  // } if (!isPresent3) {
-  //   turnOffLeds(3);
-  // } if (!isPresent4) {
-  //   turnOffLeds(4);
-  // }
 }
 
 void updateCPRLights(bool state) {
@@ -215,16 +160,20 @@ void activateSection(int section) {
   lastSection = section;
   int start = (section - 1) * 8 + 7;
 
-  // Serial.println(section);
-
   for (int i = 0; i < NUM_LEDS_DRAWERS; i++) { 
-    if (i >= start && i < start + 8) {
+    if (i >= 22 && i < 30) {
       if (section == 1) leds_drawer[i] = CRGB::Red;
-      else if (section == 2) leds_drawer[i] = CRGB::Green;
-      else if (section == 3) leds_drawer[i] = CRGB::Blue;
-      else if (section == 4) leds_drawer[i] = CRGB::Yellow;
-    } else {
-      // leds_drawer[i] = CRGB::Black;
+    } 
+    else if (i >= 31 && i < 39) {
+      if (section == 2) leds_drawer[i] = CRGB::Green;
+    } 
+    else if (i >= 40 && i < 51) {
+      if (section == 3) leds_drawer[i] = CRGB::Blue;
+    } 
+    else if (i >= 51 && i < 62) {
+      if (section == 4) leds_drawer[i] = CRGB::Yellow;
+    } 
+    else {
       leds_drawer[i] = leds_drawer[i];
     }
   }
@@ -235,15 +184,19 @@ void turnOffLeds(int section) {
   int start = (section - 1) * 8 + 7;
 
   for (int i = 0; i < NUM_LEDS_DRAWERS; i++) { 
-    if (i >= start && i < start + 8) {
-      leds_drawer[i] = CRGB::Black;
-    }
-    // else {
-    //   // leds_drawer[i] = CRGB::Black;
-    //   leds_drawer[i] = leds_drawer[i];
-    // }
+    if (i >= 22 && i < 30) { 
+      if (section == 1) leds_drawer[i] = CRGB::Black;
+    } 
+    else if (i >= 31 && i < 39) {
+      if (section == 2) leds_drawer[i] = CRGB::Black;
+    } 
+    else if (i >= 40 && i < 51) {
+      if (section == 3) leds_drawer[i] = CRGB::Black;
+    } 
+    else if (i >= 51 && i < 62) {
+      if (section == 4) leds_drawer[i] = CRGB::Black;
+    } 
   }
 
   FastLED.show();
 }
-
