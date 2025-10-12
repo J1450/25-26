@@ -10,8 +10,7 @@
 
 /* Function prototypes here */
 
-/* Functions */.
-
+/* Functions */
 
 /* checkStock - Checks the stock of all contents being present and not
  *              expired
@@ -39,8 +38,6 @@
 
 /* overrideCode - Overrides the current code type */
 
-
 /* endCode - Saves information regarding the steps taken during the code,
  *           which providers were there, and outcome of code, also
  *           initiates checkStock */
-
