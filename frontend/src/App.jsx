@@ -4,7 +4,7 @@ function App() {
     return (
         <BrowserRouter>
             <Routes>
-                <Route path="/" element={<CodeSelectionPage />} />
+                <Route path="/" element={<MainPage />} />
                 <Route path="/code/asystole" element={<AsystolePage />} />
                 <Route path="/code/ventfib" element={<VentFibPage />} />
                 <Route path="/code/normalsinus" element={<NormalSinusPage />} />
