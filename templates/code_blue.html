@@ -1,238 +1,198 @@
 <!DOCTYPE html>
 <html>
-  <head>
+
+<head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>ResQ Carts</title>
-    
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js" integrity="sha512-bLT0Qm9VnAYZDflyKcBaQ2gg0hSYNQrJ8RilYldYQ1FxQYoCLtUjuuRuZo+fjqhx/qtq/1itJ0C2ejDxltZVFg==" crossorigin="anonymous"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/3.0.4/socket.io.js" integrity="sha512-aMGMvNYu8Ue4G+fHa359jcPb1u+ytAF+P2SCb+PxrjCdO3n3ZTxJ30zuH39rimUggmTwmh2u7wvQsDTHESnmfQ==" crossorigin="anonymous"></script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js"
+        integrity="sha512-bLT0Qm9VnAYZDflyKcBaQ2gg0hSYNQrJ8RilYldYQ1FxQYoCLtUjuuRuZo+fjqhx/qtq/1itJ0C2ejDxltZVFg=="
+        crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/3.0.4/socket.io.js"
+        integrity="sha512-aMGMvNYu8Ue4G+fHa359jcPb1u+ytAF+P2SCb+PxrjCdO3n3ZTxJ30zuH39rimUggmTwmh2u7wvQsDTHESnmfQ=="
+        crossorigin="anonymous"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.1/chart.min.js"></script>
     <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
     <link href="{{url_for('static', filename = 'css/app.css')}}" rel="stylesheet">
-    <style>
-        /* ... existing styles ... */
-        
-        #questions-container {
-            box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
-            z-index: 1000;
-        }
-        
-        #questions-container .question {
-            display: inline-block;
-            margin: 0 20px;
-            font-size: 20px;
-        }
-        
-        #questions-container h3 {
-            margin-bottom: 10px;
-            color:  #000000; 
-            font-size: 50px;
-        }
-        
-        #questions-container button {
-            margin: 0 10px;
-            padding: 8px 20px;
-            border: none;
-            border-radius: 4px;
-            background-color:#028090ff;
-            color: white;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-        
-        #questions-container button:hover {
-            opacity: 0.9;
-            transform: scale(1.02);
-        }
-        
-        #questions-container button:disabled {
-            cursor: not-allowed;
-        }
-    </style>
-  </head>
-  <body>
+</head>
+
+<body>
     <script type="text/javascript">
-      // Set initial scenario from server
-      window.currentScenario = parseInt('{{ initial_scenario }}');
-      
-      // Ensure tasks are properly initialized
-      window.initialTasks = JSON.parse('{{ tasks|tojson|safe }}');
+        // Set initial scenario from server
+        window.currentScenario = parseInt('{{ initial_scenario }}');
+
+        // Ensure tasks are properly initialized
+        window.initialTasks = JSON.parse('{{ tasks|tojson|safe }}');
     </script>
     <script src="{{url_for('static', filename = 'js/app.js')}}"></script>
     <div class="headercontainer">
-      <button class="close" id="close_window">Exit</button>
-      <div class="timer">
-        <p id="runningTimer">00:00</p>
-      </div>
+        <button class="close" id="close_window">Exit</button>
+        <div class="timer">
+            <p id="runningTimer">00:00</p>
+        </div>
     </div>
-    
+
     <div class="rowcontainer">
-      <div class="column">
-        <h2>Provider 1</h2>
-        <div class="progress-container" id="progress-container-medications">
-          <div class="progress-bar" id="progress-bar-medications"></div>
-          <span class="progress-timer" id="timer-medications">20s</span>
+        <div class="column">
+            <div class="progress-container" id="progress-container-medications">
+                <div class="progress-bar" id="progress-bar-medications"></div>
+                <span class="progress-timer" id="timer-medications">20s</span>
+            </div>
+            <div class="task-container" id="medications-tasks">
+                {% if tasks and 'Medications' in tasks %}
+                {% for step in tasks['Medications']['steps'] %}
+                <div class="task-item" data-step="{{ step[1] }}">
+                    {{ step[0] }}
+                </div>
+                {% endfor %}
+                {% endif %}
+            </div>
+            <div class="button-container">
+                <button class="large-button" id="complete-medications">Complete</button>
+            </div>
         </div>
-        <div class="task-container" id="medications-tasks">
-          {% if tasks and 'Medications' in tasks %}
-            {% for step in tasks['Medications']['steps'] %}
-              <div class="task-item" data-step="{{ step[1] }}">
-                {{ step[0] }}
-              </div>
-            {% endfor %}
-          {% endif %}
-        </div>
-        <div class="button-container">
-          <button class="large-button" id="complete-medications">Complete</button>
-        </div>
-      </div>
 
-      <div class="column">
-        <h2>Provider 2</h2>
-        <div class="progress-container" id="progress-container-compressions">
-          <div class="progress-bar" id="progress-bar-compressions"></div>
-          <span class="progress-timer" id="timer-compressions">20s</span>
+        <div class="column">
+            <div class="progress-container" id="progress-container-compressions">
+                <div class="progress-bar" id="progress-bar-compressions"></div>
+                <span class="progress-timer" id="timer-compressions">20s</span>
+            </div>
+            <div class="task-container" id="compressions-tasks">
+                {% if tasks and 'Compressions' in tasks %}
+                {% for step in tasks['Compressions']['steps'] %}
+                <div class="task-item" data-step="{{ step[1] }}">
+                    {{ step[0] }}
+                </div>
+                {% endfor %}
+                {% endif %}
+            </div>
+            <div class="button-container">
+                <button class="large-button" id="complete-compressions">Complete</button>
+            </div>
         </div>
-        <div class="task-container" id="compressions-tasks">
-          {% if tasks and 'Compressions' in tasks %}
-            {% for step in tasks['Compressions']['steps'] %}
-              <div class="task-item" data-step="{{ step[1] }}">
-                {{ step[0] }}
-              </div>
-            {% endfor %}
-          {% endif %}
-        </div>
-        <div class="button-container">
-          <button class="large-button" id="complete-compressions">Complete</button>
-        </div>
-      </div>
 
-      <div class="column">
-        <h2>Provider 3</h2>
-        <div class="progress-container" id="progress-container-airways">
-          <div class="progress-bar" id="progress-bar-airways"></div>
-          <span class="progress-timer" id="timer-airways">20s</span>
+        <div class="column">
+            <div class="progress-container" id="progress-container-airways">
+                <div class="progress-bar" id="progress-bar-airways"></div>
+                <span class="progress-timer" id="timer-airways">20s</span>
+            </div>
+            <div class="task-container" id="airways-tasks">
+                {% if tasks and 'Airways' in tasks %}
+                {% for step in tasks['Airways']['steps'] %}
+                <div class="task-item" data-step="{{ step[1] }}">
+                    {{ step[0] }}
+                </div>
+                {% endfor %}
+                {% endif %}
+            </div>
+            <div class="button-container">
+                <button class="large-button" id="complete-airways">Complete</button>
+            </div>
         </div>
-        <div class="task-container" id="airways-tasks">
-          {% if tasks and 'Airways' in tasks %}
-            {% for step in tasks['Airways']['steps'] %}
-              <div class="task-item" data-step="{{ step[1] }}">
-                {{ step[0] }}
-              </div>
-            {% endfor %}
-          {% endif %}
-        </div>
-        <div class="button-container">
-          <button class="large-button" id="complete-airways">Complete</button>
-        </div>
-      </div>
     </div>
 
     <script>
-      // Function to update tasks for a category
-      function updateTasks(category) {
-        $.ajax({
-          url: '/update_status',
-          type: 'POST',
-          data: {
-            scenario: currentScenario,
-            category: category
-          },
-          success: function(response) {
-            if (response.success) {
-              // Update the UI accordingly
-              updateProgressBar(category);
-              loadNextTasks(category);
-            }
-          }
+        // Function to update tasks for a category
+        function updateTasks(category) {
+            $.ajax({
+                url: '/update_status',
+                type: 'POST',
+                data: {
+                    scenario: currentScenario,
+                    category: category
+                },
+                success: function (response) {
+                    if (response.success) {
+                        // Update the UI accordingly
+                        updateProgressBar(category);
+                        loadNextTasks(category);
+                    }
+                }
+            });
+        }
+
+        // Function to undo tasks for a category
+        function undoTasks(category) {
+            $.ajax({
+                url: '/undo_step',
+                type: 'POST',
+                data: {
+                    scenario: currentScenario,
+                    category: category
+                },
+                success: function (response) {
+                    if (response.success) {
+                        // Update the UI accordingly
+                        updateProgressBar(category);
+                        loadPreviousTasks(category);
+                    }
+                }
+            });
+        }
+
+        // Function to load next tasks
+        function loadNextTasks(category) {
+            const lowerCategory = category.toLowerCase();
+            $.ajax({
+                url: '/obtain_status',
+                type: 'POST',
+                data: {
+                    scenario: currentScenario,
+                    category: category
+                },
+                success: function (response) {
+                    if (response.success) {
+                        // Update the task container with new tasks
+                        const taskContainer = document.getElementById(lowerCategory + '-tasks');
+
+                        // Create and add new task with a fade-in effect
+                        const taskItem = document.createElement('div');
+                        taskItem.className = 'task-item';
+                        taskItem.style.opacity = '0';
+                        taskItem.textContent = response.step[0];
+                        taskItem.dataset.step = response.step[1];
+                        taskContainer.appendChild(taskItem);
+
+                        // Trigger reflow and fade in
+                        taskItem.offsetHeight;
+                        taskItem.style.transition = 'opacity 0.3s ease-in';
+                        taskItem.style.opacity = '1';
+                    } else {
+                        // If no more tasks, hide the timer and progress bar
+                        const timerElement = document.getElementById(`timer-${lowerCategory}`);
+                        const progressBar = document.getElementById(`progress-bar-${lowerCategory}`);
+                        timerElement.style.display = 'none';
+                        progressBar.style.display = 'none';
+                    }
+                }
+            });
+        }
+
+        // Event listeners for buttons
+        document.getElementById('complete-medications').addEventListener('click', () => updateTasks('Medications'));
+        document.getElementById('complete-compressions').addEventListener('click', () => updateTasks('Compressions'));
+        document.getElementById('complete-airways').addEventListener('click', () => updateTasks('Airways'));
+
+        document.getElementById('undo-medications').addEventListener('click', () => undoTasks('Medications'));
+        document.getElementById('undo-compressions').addEventListener('click', () => undoTasks('Compressions'));
+        document.getElementById('undo-airways').addEventListener('click', () => undoTasks('Airways'));
+
+        // Timer functionality
+        let startTime = Date.now();
+        setInterval(() => {
+            const elapsedTime = Math.floor((Date.now() - startTime) / 1000);
+            const minutes = Math.floor(elapsedTime / 60);
+            const seconds = elapsedTime % 60;
+            document.getElementById('runningTimer').textContent =
+                `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }, 1000);
+
+        // Close window functionality
+        document.getElementById('close_window').addEventListener('click', () => {
+            fetch('/close_window', { method: 'POST' });
         });
-      }
-
-      // Function to undo tasks for a category
-      function undoTasks(category) {
-        $.ajax({
-          url: '/undo_step',
-          type: 'POST',
-          data: {
-            scenario: currentScenario,
-            category: category
-          },
-          success: function(response) {
-            if (response.success) {
-              // Update the UI accordingly
-              updateProgressBar(category);
-              loadPreviousTasks(category);
-            }
-          }
-        });
-      }
-
-      // Function to load next tasks
-      function loadNextTasks(category) {
-        const lowerCategory = category.toLowerCase();
-        $.ajax({
-          url: '/obtain_status',
-          type: 'POST',
-          data: {
-            scenario: currentScenario,
-            category: category
-          },
-          success: function(response) {
-            if (response.success) {
-              // Update the task container with new tasks
-              const taskContainer = document.getElementById(lowerCategory + '-tasks');
-              
-              // Create and add new task with a fade-in effect
-              const taskItem = document.createElement('div');
-              taskItem.className = 'task-item';
-              taskItem.style.opacity = '0';
-              taskItem.textContent = response.step[0];
-              taskItem.dataset.step = response.step[1];
-              taskContainer.appendChild(taskItem);
-              
-              // Trigger reflow and fade in
-              taskItem.offsetHeight;
-              taskItem.style.transition = 'opacity 0.3s ease-in';
-              taskItem.style.opacity = '1';
-            } else {
-              // If no more tasks, hide the timer and progress bar
-              const timerElement = document.getElementById(`timer-${lowerCategory}`);
-              const progressBar = document.getElementById(`progress-bar-${lowerCategory}`);
-              timerElement.style.display = 'none';
-              progressBar.style.display = 'none';
-            }
-          }
-        });
-      }
-
-      // Event listeners for buttons
-      document.getElementById('complete-medications').addEventListener('click', () => updateTasks('Medications'));
-      document.getElementById('complete-compressions').addEventListener('click', () => updateTasks('Compressions'));
-      document.getElementById('complete-airways').addEventListener('click', () => updateTasks('Airways'));
-
-      document.getElementById('undo-medications').addEventListener('click', () => undoTasks('Medications'));
-      document.getElementById('undo-compressions').addEventListener('click', () => undoTasks('Compressions'));
-      document.getElementById('undo-airways').addEventListener('click', () => undoTasks('Airways'));
-
-      // Timer functionality
-      let startTime = Date.now();
-      setInterval(() => {
-        const elapsedTime = Math.floor((Date.now() - startTime) / 1000);
-        const minutes = Math.floor(elapsedTime / 60);
-        const seconds = elapsedTime % 60;
-        document.getElementById('runningTimer').textContent = 
-          `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-      }, 1000);
-
-      // Close window functionality
-      document.getElementById('close_window').addEventListener('click', () => {
-        fetch('/close_window', { method: 'POST' });
-      });
     </script>
-  </body>
+</body>
+
 </html>
-
-
-
-

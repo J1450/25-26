@@ -3,7 +3,7 @@ from datetime import datetime
 
 app = Flask(__name__)
 
-# Task data structure matching your HTML
+# Task data structure
 tasks = {
     0: {
         'Medications': {'count': 0, 'steps': [('Place IV #1', 20), ('Give Epi', 15)]},
@@ -48,7 +48,7 @@ def start_code():
             scenario_name = scenario_names.get(initial_scenario, f'Scenario {initial_scenario}')
             interactions.append([f"Code Initiated - {scenario_name}", now.strftime("%m/%d/%Y %H:%M:%S")])
             
-            return render_template('code_blue.html', 
+            return render_template('new_code_blue.html', 
                                 tasks=scenario_tasks,
                                 initial_scenario=initial_scenario)
         else:
@@ -239,9 +239,31 @@ def upload_page():
 @app.route('/get_interactions', methods=['GET'])
 def get_interactions():
     return jsonify({'success': True, 'interactions': interactions})
+    
+@app.route('/record_task_completion', methods=['POST'])
+def record_task_completion():
+    global interactions
+    try:
+        timestamp = datetime.now().strftime("%m/%d/%Y %H:%M:%S")
+        category = request.form.get('category')
+        task = request.form.get('task')
+        scenario = int(request.form.get('scenario', current_scenario))
+        action = request.form.get('action')
+        
+        # Record the interaction
+        scenario_names = {0: 'Asystole', 1: 'Ventricular Fibrillation', 2: 'Normal Sinus'}
+        scenario_name = scenario_names.get(scenario, f'Scenario {scenario}')
+        text = f"[{scenario_name}] {category} - Completed: {task}"
+        
+        interactions.append([text, timestamp])
+        
+        return jsonify({'success': True, 'message': 'Task completion recorded'})
+        
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
 
 if __name__ == '__main__':
     print("Starting ResQ Carts Frontend Development Server")
-    print("Access the application at: http://localhost:5000")
-    print("Start a code blue at: http://localhost:5000/start_code?scenario=0")
+    print("Access the application at: http://localhost:5001")
+    print("Start a code blue at: http://localhost:5001/start_code?scenario=0")
     app.run(debug=True, host='0.0.0.0', port=5001)

@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ResQ Carts</title>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js"
+        integrity="sha512-bLT0Qm9VnAYZDflyKcBaQ2gg0hSYNQrJ8RilYldYQ1FxQYoCLtUjuuRuZo+fjqhx/qtq/1itJ0C2ejDxltZVFg=="
+        crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/3.0.4/socket.io.js"
+        integrity="sha512-aMGMvNYu8Ue4G+fHa359jcPb1u+ytAF+P2SCb+PxrjCdO3n3ZTxJ30zuH39rimUggmTwmh2u7wvQsDTHESnmfQ=="
+        crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.1/chart.min.js"></script>
+    <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+    <link href="{{url_for('static', filename = 'css/app.css')}}" rel="stylesheet">
+</head>
+
+<body>
+    <script type="text/javascript">
+        // Set initial scenario from server
+        window.currentScenario = parseInt('{{ initial_scenario }}');
+
+        // Ensure tasks are properly initialized
+        window.initialTasks = JSON.parse('{{ tasks|tojson|safe }}');
+    </script>
+    <script src="{{url_for('static', filename = 'js/new_app.js')}}"></script>
+
+
+    <div class="clinical-status-header">
+        <div class="status-info">
+            <div class="status-item">
+                <span class="status-label">Clinical Status:</span>
+                <span class="status-value" id="clinical-status-display">
+                    {% if initial_scenario == 0 %}Asystole
+                    {% elif initial_scenario == 1 %}Ventricular Fibrillation
+                    {% else %}Normal Sinus{% endif %}
+                </span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">Pulse:</span>
+                <span class="status-value" id="pulse-display">
+                    {% if initial_scenario == 0 %}No
+                    {% elif initial_scenario == 1 %}No
+                    {% else %}Yes{% endif %}
+                </span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">Shockable Rhythm:</span>
+                <span class="status-value" id="rhythm-display">
+                    {% if initial_scenario == 0 %}No
+                    {% elif initial_scenario == 1 %}Yes
+                    {% else %}No{% endif %}
+                </span>
+            </div>
+        </div>
+    </div>
+
+
+    <div class="rowcontainer">
+        <!-- Medications -->
+        <div class="task-container" id="medications-tasks">
+            {% if tasks and 'Medications' in tasks %}
+            {% for step in tasks['Medications']['steps'] %}
+            <div class="task-item" data-step="{{ step[1] }}">
+                <span class="checkbox"></span>
+                {{ step[0] }}
+            </div>
+            {% endfor %}
+            {% endif %}
+        </div>
+
+        <!-- Compressions -->
+        <div class="task-container" id="compressions-tasks">
+            {% if tasks and 'Compressions' in tasks %}
+            {% for step in tasks['Compressions']['steps'] %}
+            <div class="task-item" data-step="{{ step[1] }}">
+                <span class="checkbox"></span>
+                {{ step[0] }}
+            </div>
+            {% endfor %}
+            {% endif %}
+        </div>
+
+        <!-- Airways -->
+        <div class="task-container" id="compressions-tasks">
+            {% if tasks and 'Airways' in tasks %}
+            {% for step in tasks['Airways']['steps'] %}
+            <div class="task-item" data-step="{{ step[1] }}">
+                <span class="checkbox"></span>
+                {{ step[0] }}
+            </div>
+            {% endfor %}
+            {% endif %}
+        </div>
+    </div>
+</body>
+
+</html>
+
+</body>
