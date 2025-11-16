@@ -1,6 +1,8 @@
 $(document).ready(function () {
     let currentScenario = window.currentScenario || 0;
     let taskTimers = {};
+    let startTime;
+    let elapsedTimer;
 
     initializePage();
 
@@ -15,9 +17,43 @@ $(document).ready(function () {
         });
 
         applyTaskColors();
-
         startTaskTimers();
+        updateCPRStatus();
+        startElapsedTimer();
 
+    }
+
+    function updateCPRStatus() {
+        const cprStatus = document.getElementById('cpr-status');
+        const cprValue = document.getElementById('cpr-value');
+        const pulseDisplay = document.getElementById('pulse-display');
+        const rhythmDisplay = document.getElementById('rhythm-display');
+
+        // Start page
+        if (!pulseDisplay || !rhythmDisplay) {
+            if (window.initialAnswers && window.initialAnswers.pulse !== undefined) {
+                const cprRequired = !window.initialAnswers.pulse;
+                updateCPRDisplay(cprStatus, cprValue, cprRequired);
+            }
+            return;
+        }
+
+        // Main page
+        const hasPulse = pulseDisplay.textContent.trim().toLowerCase() === 'yes';
+        const cprRequired = !hasPulse;
+        updateCPRDisplay(cprStatus, cprValue, cprRequired);
+    }
+
+    function updateCPRDisplay(cprStatus, cprValue, cprRequired) {
+        if (cprRequired) {
+            cprStatus.className = 'cpr-status active';
+            cprValue.textContent = 'YES';
+            cprValue.style.color = 'white';
+        } else {
+            cprStatus.className = 'cpr-status inactive';
+            cprValue.textContent = 'NO';
+            cprValue.style.color = '#666666';
+        }
     }
 
     function toggleTaskCompletion(taskElement) {
@@ -46,8 +82,8 @@ $(document).ready(function () {
     }
 
     function recordTaskCompletion(category, task) {
-        console.log(`Task completed: ${task} in ${category}`);
-
+        const elapsedTime = getElapsedTime();
+        console.log(`Task completed: ${task} in ${category} at ${elapsedTime}s`);
         // Send to server
         $.ajax({
             url: '/record_task_completion',
@@ -56,7 +92,8 @@ $(document).ready(function () {
                 scenario: currentScenario,
                 category: category,
                 task: task,
-                action: 'complete'
+                action: 'complete',
+                elapsed_time: elapsedTime
             },
             success: function (response) {
                 console.log('Task completion recorded:', response);
@@ -107,6 +144,60 @@ $(document).ready(function () {
         });
     }
 
+
+    function startElapsedTimer() {
+        // Clear existing timer
+        if (elapsedTimer) {
+            clearInterval(elapsedTimer);
+        }
+
+        // Set start time
+        startTime = Date.now();
+
+        // Create or update timer display
+        let timerDisplay = document.getElementById('elapsed-timer');
+        if (!timerDisplay) {
+            timerDisplay = document.createElement('div');
+            timerDisplay.id = 'elapsed-timer';
+            timerDisplay.style.cssText = `
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 4em;
+            font-weight: bold;
+            color: black;
+            background: white;
+            padding: 10px 20px;
+            border-radius: 10px;
+            border: 2px solid black;
+            z-index: 1000;
+            font-family: 'Inter', sans-serif;
+        `;
+            document.body.appendChild(timerDisplay);
+        }
+
+        // Update timer every second
+        elapsedTimer = setInterval(() => {
+            const elapsedTime = Math.floor((Date.now() - startTime) / 1000);
+            const minutes = Math.floor(elapsedTime / 60);
+            const seconds = elapsedTime % 60;
+            timerDisplay.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }, 1000);
+    }
+
+    function stopElapsedTimer() {
+        if (elapsedTimer) {
+            clearInterval(elapsedTimer);
+            elapsedTimer = null;
+        }
+    }
+
+    function getElapsedTime() {
+        if (!startTime) return 0;
+        return Math.floor((Date.now() - startTime) / 1000);
+    }
+
     // Handle scenario changes from questions
     window.handleScenarioChange = function (newScenario) {
         console.log('Changing to scenario:', newScenario);
@@ -133,6 +224,8 @@ $(document).ready(function () {
                 }
             });
         }
+
+        updateCPRStatus();
 
         // Check if both questions are answered
         if (window.initialAnswers.pulse !== undefined && window.initialAnswers.rhythm !== undefined) {

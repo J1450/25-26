@@ -7,12 +7,12 @@ app = Flask(__name__)
 tasks = {
     0: {
         'Medications': {'count': 0, 'steps': [('Place IV #1', 20), ('Give Epi', 15)]},
-        'Compressions': {'count': 0, 'steps': [('CPR', 20)]},
+        'Compressions': {'count': 0, 'steps': []},
         'Airways': {'count': 0, 'steps': [('Place Oxygen', 20)]}
     },
     1: {
         'Medications': {'count': 0, 'steps': [('Give Epi', 15), ('Give Amiodarone', 10)]},
-        'Compressions': {'count': 0, 'steps': [('Shock', 20), ('CPR', 15)]},
+        'Compressions': {'count': 0, 'steps': [('Shock', 20)]},
         'Airways': {'count': 0, 'steps': [('Listen to lungs', 20), ('Place IV #2', 15)]}
     },
     2: {
@@ -249,11 +249,12 @@ def record_task_completion():
         task = request.form.get('task')
         scenario = int(request.form.get('scenario', current_scenario))
         action = request.form.get('action')
+        elapsed_time = request.form.get('elapsed_time', 0)
         
         # Record the interaction
         scenario_names = {0: 'Asystole', 1: 'Ventricular Fibrillation', 2: 'Normal Sinus'}
         scenario_name = scenario_names.get(scenario, f'Scenario {scenario}')
-        text = f"[{scenario_name}] {category} - Completed: {task}"
+        text = f"[{scenario_name}] {category} - Completed: {task} at {elapsed_time}s"
         
         interactions.append([text, timestamp])
         

@@ -532,9 +532,9 @@ button:hover {
     background: white;
     color: black;
     text-align: center;
-    margin: 50px 0;
+    margin: 50px 0 0 0;
     padding-bottom: 45px;
-    border-bottom: 1px solid black;
+    border-bottom: 2px solid #ddd;
 }
 
 .status-info {
@@ -587,4 +587,69 @@ button:hover {
     background-color: inherit;
     border-color: black;
     color: black;
+}
+
+/* CPR Status*/
+.cpr-banner {
+    padding: 10px 0;
+    text-align: center;
+    font-size: 2em;
+    font-weight: bold;
+    margin: 0;
+    border-bottom: 2px solid #ddd;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.cpr-label {
+    font-weight: normal;
+    margin-right: 10px;
+}
+
+.cpr-value {
+    font-weight: bold;
+}
+
+.cpr-status.active {
+    background-color: red;
+    color: white;
+    animation: blink 1s infinite;
+    padding: 10px 0;
+    text-align: center;
+    font-size: 2em;
+    font-weight: bold;
+    margin: 0;
+    border-bottom: 2px solid #ddd;
+    display: flex;
+    justify-content: center;
+}
+
+@keyframes blink {
+    0% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.3;
+    }
+
+    100% {
+        opacity: 1;
+    }
+}
+
+.cpr-status.inactive {
+    background-color: #cccccc;
+    color: #666666;
+    width: 100%;
+    padding: 10px 0;
+    text-align: center;
+    font-size: 2em;
+    font-weight: bold;
+    margin: 0;
+    border-bottom: 2px solid #ddd;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
