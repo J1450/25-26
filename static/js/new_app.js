@@ -4,7 +4,103 @@ $(document).ready(function () {
     let startTime;
     let elapsedTimer;
 
-    initializePage();
+    // Start page
+    $('#startCode').on('click', function () {
+        // Create and show questions before redirecting
+        const container = document.createElement('div');
+        container.id = 'questions-container';
+
+        container.innerHTML = `
+            <div class="question" id="pulse-question">
+                <h3>Pulse?</h3>
+                <div class="button-group">
+                    <button class="answer-button" onclick="handleInitialAnswer('pulse', true)">Yes</button>
+                    <button class="answer-button" onclick="handleInitialAnswer('pulse', false)">No</button>
+                </div>
+            </div>
+            
+            <div class="divider"></div>
+            
+            <div class="question" id="rhythm-question">
+                <h3>Shockable Rhythm?</h3>
+                <div class="button-group">
+                    <button class="answer-button" onclick="handleInitialAnswer('rhythm', true)">Yes</button>
+                    <button class="answer-button" onclick="handleInitialAnswer('rhythm', false)">No</button>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(container);
+    });
+
+    // Global answers object for initial scenario selection
+    window.initialAnswers = {};
+
+    // Global function to handle initial answers
+    window.handleInitialAnswer = function (type, value) {
+        if (!window.initialAnswers) window.initialAnswers = {};
+        window.initialAnswers[type] = value;
+
+        const questionDiv = document.getElementById(`${type}-question`);
+        if (questionDiv) {
+            const buttons = questionDiv.getElementsByTagName('button');
+            Array.from(buttons).forEach(button => {
+                button.disabled = true;
+                if (button.textContent.toLowerCase() === (value ? 'yes' : 'no')) {
+                    button.style.backgroundColor = '#AED27B';
+                } else {
+                    button.style.opacity = '0.5';
+                }
+            });
+        }
+
+        updateCPRStatus();
+
+        // Check if both questions are answered
+        if (window.initialAnswers.pulse !== undefined && window.initialAnswers.rhythm !== undefined) {
+            // Check for invalid yes/yes combination
+            if (window.initialAnswers.pulse && window.initialAnswers.rhythm) {
+                // Reset answers
+                window.initialAnswers = {};
+
+                // Reset all buttons after a short delay
+                setTimeout(() => {
+                    const container = document.getElementById('questions-container');
+                    if (container) {
+                        container.innerHTML = `
+                                <div class="question" id="pulse-question" style="margin-bottom: 15px;">
+                                    <h3>Pulse?</h3>
+                                    <button class="btn btn-primary" style="color: white;" onclick="handleInitialAnswer('pulse', true)">Yes</button>
+                                    <button class="btn btn-primary" style="color: white;" onclick="handleInitialAnswer('pulse', false)">No</button>
+                                </div>
+                                <div class="question" id="rhythm-question" style="margin-bottom: 15px;">
+                                    <h3>Shockable Rhythm?</h3>
+                                    <button class="btn btn-primary" style="color: white;" onclick="handleInitialAnswer('rhythm', true)">Yes</button>
+                                    <button class="btn btn-primary" style="color: white;" onclick="handleInitialAnswer('rhythm', false)">No</button>
+                                </div>
+                            `;
+                    }
+                }, 500);
+                return;
+            }
+
+            // Determine scenario
+            let scenario;
+            if (!window.initialAnswers.pulse && !window.initialAnswers.rhythm) {
+                scenario = 0; // Asystole
+            } else if (!window.initialAnswers.pulse && window.initialAnswers.rhythm) {
+                scenario = 1; // Ventricular Fibrillation
+            } else if (window.initialAnswers.pulse && !window.initialAnswers.rhythm) {
+                scenario = 2; // Normal Sinus
+            }
+
+            // Redirect to the selected scenario
+            setTimeout(() => {
+                window.location.href = `/start_code?scenario=${scenario}`;
+            }, 1000);
+        }
+    };
+
 
     function initializePage() {
         console.log('Initializing page with scenario:', currentScenario);
@@ -156,26 +252,6 @@ $(document).ready(function () {
 
         // Create or update timer display
         let timerDisplay = document.getElementById('elapsed-timer');
-        if (!timerDisplay) {
-            timerDisplay = document.createElement('div');
-            timerDisplay.id = 'elapsed-timer';
-            timerDisplay.style.cssText = `
-            position: fixed;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            font-size: 4em;
-            font-weight: bold;
-            color: black;
-            background: white;
-            padding: 10px 20px;
-            border-radius: 10px;
-            border: 2px solid black;
-            z-index: 1000;
-            font-family: 'Inter', sans-serif;
-        `;
-            document.body.appendChild(timerDisplay);
-        }
 
         // Update timer every second
         elapsedTimer = setInterval(() => {
