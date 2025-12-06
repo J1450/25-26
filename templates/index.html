@@ -13,15 +13,19 @@
         integrity="sha512-aMGMvNYu8Ue4G+fHa359jcPb1u+ytAF+P2SCb+PxrjCdO3n3ZTxJ30zuH39rimUggmTwmh2u7wvQsDTHESnmfQ=="
         crossorigin="anonymous"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.1/chart.min.js"></script>
-    <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
     <link href="{{url_for('static', filename = 'css/app.css')}}" rel="stylesheet">
 </head>
 
 <body>
-    <script type="text/javascript" src="{{ url_for('static', filename = 'js/new_app.js') }}"></script>
     <div class="center">
         <button class="extra-large-button" id="startCode">Start Code</button>
     </div>
+    <div class="inventory-button-container">
+        <a href="/inventory">
+            <button class="inventory-button">Check Inventory</button>
+        </a>
+    </div>
+    <script type="text/javascript" src="{{ url_for('static', filename = 'js/new_app.js') }}"></script>
 </body>
 
 </html>

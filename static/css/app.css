@@ -239,6 +239,7 @@ button:hover {
     border-radius: 8px;
     padding: 30px;
     font-weight: 500;
+    font-size: x-large;
     text-align: center;
     align-items: center;
     display: flex;
@@ -719,4 +720,25 @@ button:hover {
     display: flex;
     justify-content: center;
     align-items: center;
+}
+
+.inventory-button-container {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+}
+
+.inventory-button {
+    background-color: #D9D9D9;
+    color: black;
+    border: 1px solid black;
+    padding: 20px 40px;
+    border-radius: 10px;
+    font-size: 18px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.inventory-button:hover {
+    opacity: 0.85;
 }

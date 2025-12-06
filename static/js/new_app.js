@@ -4,103 +4,96 @@ $(document).ready(function () {
     let startTime;
     let elapsedTimer;
 
-    // Start page
-    $('#startCode').on('click', function () {
-        // Create and show questions before redirecting
-        const container = document.createElement('div');
-        container.id = 'questions-container';
+    window.lastPeriodicAnswers = { pulse: null, rhythm: null };
 
+    $('#startCode').on('click', function () {
+        showQuestionPopup();
+    });
+
+    $('#inventoryButton').on('click', function () {
+        window.location.href = '/inventory';
+    });
+
+    function isOnStartPage() {
+        return window.location.pathname === "/" || window.location.pathname === "/index";
+    }
+
+    function showQuestionPopup() {
+        let container = document.getElementById('questions-container');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'questions-container';
+            document.body.appendChild(container);
+        }
         container.innerHTML = `
             <div class="question" id="pulse-question">
                 <h3>Pulse?</h3>
-                <div class="button-group">
-                    <button class="answer-button" onclick="handleInitialAnswer('pulse', true)">Yes</button>
-                    <button class="answer-button" onclick="handleInitialAnswer('pulse', false)">No</button>
-                </div>
+                    <div class="button-group">
+                        <button class="answer-button" onclick="handlePeriodicAnswer('pulse', true)">Yes</button>
+                        <button class="answer-button" onclick="handlePeriodicAnswer('pulse', false)">No</button>
+                    </div>
             </div>
-            
             <div class="divider"></div>
-            
             <div class="question" id="rhythm-question">
                 <h3>Shockable Rhythm?</h3>
-                <div class="button-group">
-                    <button class="answer-button" onclick="handleInitialAnswer('rhythm', true)">Yes</button>
-                    <button class="answer-button" onclick="handleInitialAnswer('rhythm', false)">No</button>
-                </div>
+                    <div class="button-group">
+                        <button class="answer-button" onclick="handlePeriodicAnswer('rhythm', true)">Yes</button>
+                        <button class="answer-button" onclick="handlePeriodicAnswer('rhythm', false)">No</button>
+                    </div>
             </div>
         `;
+        window.periodicAnswers = {};
+    }
 
-        document.body.appendChild(container);
-    });
+    window.handlePeriodicAnswer = function (type, value) {
+        if (!window.periodicAnswers) window.periodicAnswers = {};
+        window.periodicAnswers[type] = value;
 
-    // Global answers object for initial scenario selection
-    window.initialAnswers = {};
-
-    // Global function to handle initial answers
-    window.handleInitialAnswer = function (type, value) {
-        if (!window.initialAnswers) window.initialAnswers = {};
-        window.initialAnswers[type] = value;
-
-        const questionDiv = document.getElementById(`${type}-question`);
-        if (questionDiv) {
-            const buttons = questionDiv.getElementsByTagName('button');
-            Array.from(buttons).forEach(button => {
-                button.disabled = true;
-                if (button.textContent.toLowerCase() === (value ? 'yes' : 'no')) {
-                    button.style.backgroundColor = '#AED27B';
-                } else {
-                    button.style.opacity = '0.5';
-                }
-            });
-        }
-
-        updateCPRStatus();
-
-        // Check if both questions are answered
-        if (window.initialAnswers.pulse !== undefined && window.initialAnswers.rhythm !== undefined) {
-            // Check for invalid yes/yes combination
-            if (window.initialAnswers.pulse && window.initialAnswers.rhythm) {
-                // Reset answers
-                window.initialAnswers = {};
-
-                // Reset all buttons after a short delay
-                setTimeout(() => {
-                    const container = document.getElementById('questions-container');
-                    if (container) {
-                        container.innerHTML = `
-                                <div class="question" id="pulse-question" style="margin-bottom: 15px;">
-                                    <h3>Pulse?</h3>
-                                    <button class="btn btn-primary" style="color: white;" onclick="handleInitialAnswer('pulse', true)">Yes</button>
-                                    <button class="btn btn-primary" style="color: white;" onclick="handleInitialAnswer('pulse', false)">No</button>
-                                </div>
-                                <div class="question" id="rhythm-question" style="margin-bottom: 15px;">
-                                    <h3>Shockable Rhythm?</h3>
-                                    <button class="btn btn-primary" style="color: white;" onclick="handleInitialAnswer('rhythm', true)">Yes</button>
-                                    <button class="btn btn-primary" style="color: white;" onclick="handleInitialAnswer('rhythm', false)">No</button>
-                                </div>
-                            `;
-                    }
-                }, 500);
-                return;
+        const buttons = document.getElementById(`${type}-question`).getElementsByTagName('button');
+        Array.from(buttons).forEach(btn => {
+            btn.disabled = true;
+            if (btn.textContent.toLowerCase() === (value ? 'yes' : 'no')) {
+                btn.style.backgroundColor = '#BAABC4';
+            } else {
+                btn.style.opacity = 0.5;
             }
+        });
+
+        // When both questions answered
+        if (window.periodicAnswers.pulse !== undefined && window.periodicAnswers.rhythm !== undefined) {
+            const changed = window.lastPeriodicAnswers.pulse !== window.periodicAnswers.pulse ||
+                window.lastPeriodicAnswers.rhythm !== window.periodicAnswers.rhythm;
+
+            // Update last answers
+            window.lastPeriodicAnswers.pulse = window.periodicAnswers.pulse;
+            window.lastPeriodicAnswers.rhythm = window.periodicAnswers.rhythm;
 
             // Determine scenario
             let scenario;
-            if (!window.initialAnswers.pulse && !window.initialAnswers.rhythm) {
-                scenario = 0; // Asystole
-            } else if (!window.initialAnswers.pulse && window.initialAnswers.rhythm) {
-                scenario = 1; // Ventricular Fibrillation
-            } else if (window.initialAnswers.pulse && !window.initialAnswers.rhythm) {
-                scenario = 2; // Normal Sinus
+            if (!window.periodicAnswers.pulse && !window.periodicAnswers.rhythm) scenario = 0;
+            else if (!window.periodicAnswers.pulse && window.periodicAnswers.rhythm) scenario = 1;
+            else if (window.periodicAnswers.pulse && !window.periodicAnswers.rhythm) scenario = 2;
+            else if (window.periodicAnswers.pulse && window.periodicAnswers.rhythm) {
+                return
             }
 
-            // Redirect to the selected scenario
-            setTimeout(() => {
-                window.location.href = `/start_code?scenario=${scenario}`;
-            }, 1000);
+
+            if (changed) {
+                // Reload page if answer changed
+                setTimeout(() => {
+                    window.location.href = `/start_code?scenario=${scenario}`;
+                }, 500);
+            } else {
+                // Keep page as is, remove popup
+                const container = document.getElementById('questions-container');
+                if (container) container.remove();
+            }
         }
     };
 
+    setInterval(() => {
+        showQuestionPopup();
+    }, 2 * 60 * 1000); // 2 minutes
 
     function initializePage() {
         console.log('Initializing page with scenario:', currentScenario);
@@ -116,29 +109,27 @@ $(document).ready(function () {
         startTaskTimers();
         updateCPRStatus();
         startElapsedTimer();
-
     }
 
     function updateCPRStatus() {
         const cprStatus = document.getElementById('cpr-status');
         const cprValue = document.getElementById('cpr-value');
-        const pulseDisplay = document.getElementById('pulse-display');
-        const rhythmDisplay = document.getElementById('rhythm-display');
 
-        // Start page
-        if (!pulseDisplay || !rhythmDisplay) {
-            if (window.initialAnswers && window.initialAnswers.pulse !== undefined) {
-                const cprRequired = !window.initialAnswers.pulse;
-                updateCPRDisplay(cprStatus, cprValue, cprRequired);
-            }
+        // If on index page
+        if (!cprStatus || !cprValue) {
             return;
         }
 
-        // Main page
-        const hasPulse = pulseDisplay.textContent.trim().toLowerCase() === 'yes';
-        const cprRequired = !hasPulse;
-        updateCPRDisplay(cprStatus, cprValue, cprRequired);
+        const pulseDisplay = document.getElementById('pulse-display');
+        const rhythmDisplay = document.getElementById('rhythm-display');
+
+        if (pulseDisplay) {
+            const hasPulse = pulseDisplay.textContent.trim().toLowerCase() === 'yes';
+            const cprRequired = !hasPulse;
+            updateCPRDisplay(cprStatus, cprValue, cprRequired);
+        }
     }
+
 
     function updateCPRDisplay(cprStatus, cprValue, cprRequired) {
         if (cprRequired) {
@@ -282,43 +273,5 @@ $(document).ready(function () {
         // Reload the page with the new scenario
         window.location.href = `/start_code?scenario=${newScenario}`;
     };
-
-    // Global function to handle initial answers (for the start page)
-    window.handleInitialAnswer = function (type, value) {
-        if (!window.initialAnswers) window.initialAnswers = {};
-        window.initialAnswers[type] = value;
-
-        const questionDiv = document.getElementById(`${type}-question`);
-        if (questionDiv) {
-            const buttons = questionDiv.getElementsByTagName('button');
-            Array.from(buttons).forEach(button => {
-                button.disabled = true;
-                if (button.textContent.toLowerCase() === (value ? 'yes' : 'no')) {
-                    button.style.backgroundColor = '#28a745';
-                } else {
-                    button.style.opacity = '0.5';
-                }
-            });
-        }
-
-        updateCPRStatus();
-
-        // Check if both questions are answered
-        if (window.initialAnswers.pulse !== undefined && window.initialAnswers.rhythm !== undefined) {
-            // Determine scenario
-            let scenario;
-            if (!window.initialAnswers.pulse && !window.initialAnswers.rhythm) {
-                scenario = 0; // Asystole
-            } else if (!window.initialAnswers.pulse && window.initialAnswers.rhythm) {
-                scenario = 1; // Ventricular Fibrillation
-            } else if (window.initialAnswers.pulse && !window.initialAnswers.rhythm) {
-                scenario = 2; // Normal Sinus
-            }
-
-            // Redirect to the selected scenario
-            setTimeout(() => {
-                window.location.href = `/start_code?scenario=${scenario}`;
-            }, 1000);
-        }
-    };
+    initializePage();
 });
