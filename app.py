@@ -232,9 +232,13 @@ def close_window():
     print("Close window requested")
     return jsonify({'success': True})
 
-@app.route('/upload_page')
-def upload_page():
-    return "Upload page would go here"
+@app.route('/inventory')
+def inventory_page():
+    return '<img src="/static/images/inventory.png" alt="Inventory">'
+
+@app.route('/download_page')
+def download_page():
+    return "Download page would go here"
 
 @app.route('/get_interactions', methods=['GET'])
 def get_interactions():
@@ -264,7 +268,7 @@ def record_task_completion():
         return jsonify({'success': False, 'message': str(e)}), 500
 
 if __name__ == '__main__':
-    print("Starting ResQ Carts Frontend Development Server")
+    print("Starting Code Cart Frontend Development Server")
     print("Access the application at: http://localhost:5001")
     print("Start a code blue at: http://localhost:5001/start_code?scenario=0")
     app.run(debug=True, host='0.0.0.0', port=5001)

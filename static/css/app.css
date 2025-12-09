@@ -742,3 +742,26 @@ button:hover {
 .inventory-button:hover {
     opacity: 0.85;
 }
+
+.end-code-container {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    z-index: 1000;
+}
+
+.end-code-button {
+    background-color: #D9D9D9;
+    color: black;
+    bottom: 100px;
+    border: 1px solid black;
+    padding: 20px 40px;
+    border-radius: 10px;
+    font-size: 18px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.end-code-button:hover {
+    opacity: 0.85;
+}
