@@ -3,6 +3,7 @@ $(document).ready(function () {
     let taskTimers = {};
     let startTime;
     let elapsedTimer;
+    let sensorPollInterval;
 
     window.lastPeriodicAnswers = { pulse: null, rhythm: null };
 
@@ -109,6 +110,116 @@ $(document).ready(function () {
         startTaskTimers();
         updateCPRStatus();
         startElapsedTimer();
+
+        // Start polling sensor status for Asystole scenario
+        if (currentScenario === 0) {
+            startSensorPolling();
+        }
+    }
+
+    function startSensorPolling() {
+        // Clear existing interval
+        if (sensorPollInterval) {
+            clearInterval(sensorPollInterval);
+        }
+
+        // Poll sensor status every second
+        sensorPollInterval = setInterval(pollSensorStatus, 1000);
+    }
+
+    function pollSensorStatus() {
+        if (currentScenario !== 0) return; // Only for Asystole
+        console.log("🔍 Polling sensor status...");
+
+        $.ajax({
+            url: '/check_tasks_from_sensors',
+            type: 'GET',
+            success: function (response) {
+                console.log("📡 Sensor response:", response);
+
+                if (response.success && response.updated_tasks && response.updated_tasks.length > 0) {
+                    console.log(`✅ Found ${response.updated_tasks.length} tasks to update:`, response.updated_tasks);
+                    response.updated_tasks.forEach(updatedTask => {
+                        console.log(`Processing: ${updatedTask.category} - ${updatedTask.task}`);
+                        updateCheckboxFromSensor(updatedTask.category, updatedTask.task);
+                    });
+                } else {
+                    console.log("⚠ No tasks to update");
+                }
+
+                if (response.sensor_states) {
+                    console.log("📊 Sensor states:", response.sensor_states);
+                    updateSensorUI(response.sensor_states);
+                }
+            },
+            error: function (error) {
+                console.error('❌ Failed to poll sensor status:', error);
+            }
+        });
+    }
+
+    function updateCheckboxFromSensor(category, taskName) {
+        // Find the task element and mark it as completed
+        const taskContainers = {
+            'Medications': 'medications-tasks',
+            'Compressions': 'compressions-tasks',
+            'Airways': 'airways-tasks'
+        };
+
+        const containerId = taskContainers[category];
+        if (!containerId) return;
+
+        const container = document.getElementById(containerId);
+        if (!container) return;
+
+        const taskItems = container.getElementsByClassName('task-item');
+        for (let taskItem of taskItems) {
+            const taskText = taskItem.textContent.replace('✓', '').trim();
+            if (taskText === taskName) {
+                const checkbox = taskItem.querySelector('.checkbox');
+                if (!checkbox.classList.contains('checked')) {
+                    checkbox.classList.add('checked');
+                    checkbox.innerHTML = '✓';
+                    taskItem.classList.add('completed');
+
+                    // Also record the task completion
+                    recordTaskCompletion(category, taskName);
+
+                    console.log(`Auto-checked ${taskName} from sensor`);
+                }
+                break;
+            }
+        }
+    }
+
+    function updateSensorUI(sensorStates) {
+        // You can add visual feedback for sensor states if needed
+        // For example, change border colors or add icons
+        const ivTask = findTaskElement('Place IV #1');
+        const oxygenTask = findTaskElement('Place Oxygen');
+
+        if (ivTask) {
+            ivTask.style.border = sensorStates.iv_removed ? '2px solid green' : '2px solid red';
+        }
+
+        if (oxygenTask) {
+            oxygenTask.style.border = sensorStates.oxygen_removed ? '2px solid green' : '2px solid red';
+        }
+
+        // Check if both are removed (red light should be off)
+        if (sensorStates.iv_removed && sensorStates.oxygen_removed) {
+            console.log("Both IV and Oxygen removed - red light should be OFF");
+        }
+    }
+
+    function findTaskElement(taskName) {
+        const allTasks = document.querySelectorAll('.task-item');
+        for (let task of allTasks) {
+            if (task.textContent.replace('✓', '').trim() === taskName) {
+                return task;
+            }
+        }
+        return null;
     }
 
     function updateCPRStatus() {

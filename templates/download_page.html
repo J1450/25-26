@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>Code Summary</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
+</head>
+
+<body>
+
+    <b>Code Interactions Log</b>
+
+    <!-- Download button -->
+    <a href="/download_interactions_csv">
+        <button>Download as CSV</button>
+    </a>
+
+    <hr>
+
+    <!-- List of interactions -->
+    <div>
+        {% if interactions %}
+        <ul>
+            {% for interaction in interactions %}
+            <li>
+                <strong>{{ interaction[1] }}</strong> — {{ interaction[0] }}
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p>No interactions recorded.</p>
+        {% endif %}
+    </div>
+
+    <!-- Back button -->
+    <a href="/">
+        <button>Back</button>
+    </a>
+
+</body>
+
+</html>

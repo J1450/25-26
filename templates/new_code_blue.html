@@ -21,7 +21,6 @@
         // Set initial scenario from server
         window.currentScenario = parseInt('{{ initial_scenario }}');
 
-        // Ensure tasks are properly initialized
         window.initialTasks = JSON.parse('{{ tasks|tojson|safe }}');
     </script>
     <script src="{{url_for('static', filename = 'js/new_app.js')}}"></script>
@@ -87,7 +86,7 @@
         </div>
 
         <!-- Airways -->
-        <div class="task-container" id="compressions-tasks">
+        <div class="task-container" id="airways-tasks">
             {% if tasks and 'Airways' in tasks %}
             {% for step in tasks['Airways']['steps'] %}
             <div class="task-item" data-step="{{ step[1] }}">
