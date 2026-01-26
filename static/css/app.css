@@ -725,7 +725,7 @@ button:hover {
 .inventory-button-container {
     position: fixed;
     bottom: 20px;
-    right: 20px;
+    right: 200px;
 }
 
 .inventory-button {
@@ -764,4 +764,80 @@ button:hover {
 
 .end-code-button:hover {
     opacity: 0.85;
+}
+
+.location-top {
+    background-color: rgba(255, 229, 125, 0.5);
+    font-weight: bold;
+}
+
+.location-drawer-1 {
+    background-color: rgba(174, 210, 123, 0.5);
+    font-weight: bold;
+}
+
+.location-drawer-2 {
+    background-color: rgba(123, 206, 210, 0.5);
+    font-weight: bold;
+}
+
+.location-drawer-3 {
+    background-color: rgba(210, 123, 123, 0.5);
+    font-weight: bold;
+}
+
+.location-drawer-4 {
+    background-color: rgba(255, 255, 255, 0.5);
+    font-weight: bold;
+}
+
+.row-top td:not(.location-top) {
+    background-color: rgba(255, 229, 125, 0.3);
+}
+
+.row-drawer-1 td:not(.location-drawer-1) {
+    background-color: rgba(174, 210, 123, 0.3);
+}
+
+.row-drawer-2 td:not(.location-drawer-2) {
+    background-color: rgba(123, 206, 210, 0.3);
+}
+
+.row-drawer-3 td:not(.location-drawer-3) {
+    background-color: rgba(210, 123, 123, 0.3);
+}
+
+.row-drawer-4 td:not(.location-drawer-4) {
+    background-color: rgba(255, 255, 255, 0.3);
+}
+
+/* Centering text */
+.location-top,
+.location-drawer-1,
+.location-drawer-2,
+.location-drawer-3,
+.location-drawer-4 {
+    text-align: center;
+    vertical-align: middle;
+}
+
+thead th {
+    background-color: #D9D9D9;
+    color: #000;
+}
+
+.page-title {
+    text-align: center;
+    font-size: 20px;
+    font-weight: bold;
+    color: #000;
+    margin-bottom: 10px;
+}
+
+.page-footer {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1000;
 }

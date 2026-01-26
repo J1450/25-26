@@ -20,7 +20,6 @@
     <script type="text/javascript">
         // Set initial scenario from server
         window.currentScenario = parseInt('{{ initial_scenario }}');
-
         window.initialTasks = JSON.parse('{{ tasks|tojson|safe }}');
     </script>
     <script src="{{url_for('static', filename = 'js/new_app.js')}}"></script>

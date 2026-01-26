@@ -9,13 +9,13 @@
 
 <body>
 
-    <b>Code Interactions Log</b>
-
-    <!-- Download button -->
-    <a href="/download_interactions_csv">
-        <button>Download as CSV</button>
+    <div class="close-inventory"></div>
+    <a href="/">
+        <button class="inventory-button">Back</button>
     </a>
+    </div>
 
+    <div class="page-title">Code Interactions Log</div>
     <hr>
 
     <!-- List of interactions -->
@@ -33,11 +33,13 @@
         {% endif %}
     </div>
 
-    <!-- Back button -->
-    <a href="/">
-        <button>Back</button>
-    </a>
+    <footer class="page-footer">
+        <a href="/download_interactions_csv">
+            <button class="inventory-button">Download as CSV</button>
+        </a>
+    </footer>
 
 </body>
+
 
 </html>

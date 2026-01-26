@@ -125,7 +125,7 @@ def check_tasks_from_sensors():
                     interactions.append([f"[Asystole] Medications - Completed: {task_name} (via sensor)", timestamp])
                 break
     
-    # Check Oxygen taskn 
+    # Check Oxygen task
     if sensor_states['oxygen_removed']:
         # Check if "Place Oxygen" in Airways is not already completed
         if 'Airways' in tasks[0]:
@@ -361,7 +361,8 @@ def close_window():
 
 @app.route('/inventory')
 def inventory_page():
-    return '<img src="/static/images/inventory.png" alt="Inventory">'
+    # return '<img src="/static/images/inventory.png" alt="Inventory">'
+    return render_template('inventory.html')
 
 @app.route('/download_page')
 def download_page():
