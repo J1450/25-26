@@ -303,7 +303,10 @@ button:hover {
     display: flex;
     justify-content: space-around;
     padding: 20px;
-    gap: 20px;
+}
+
+.rowcontainer .task-container:not(:last-child) {
+    border-right: 1px solid black;
 }
 
 /* Responsive Design */
@@ -463,12 +466,6 @@ button:hover {
     display: flex;
     justify-content: space-around;
     height: 4em;
-}
-
-.rowcontainer {
-    display: flex;
-    justify-content: space-around;
-    padding: 20px;
 }
 
 .row:after {
@@ -725,7 +722,7 @@ button:hover {
 .inventory-button-container {
     position: fixed;
     bottom: 20px;
-    right: 200px;
+    right: 50px;
 }
 
 .inventory-button {
@@ -746,7 +743,14 @@ button:hover {
 .end-code-container {
     position: fixed;
     bottom: 20px;
-    left: 20px;
+    left: 10px;
+    z-index: 1000;
+}
+
+.home-page .end-code-container {
+    position: fixed;
+    bottom: 5px;
+    left: 50px;
     z-index: 1000;
 }
 
@@ -840,4 +844,32 @@ thead th {
     left: 50%;
     transform: translateX(-50%);
     z-index: 1000;
+}
+
+.task-item {
+    transition: margin 2s ease;
+}
+
+.task-item.exit {
+    transition:
+        opacity 0.6s ease,
+        transform 2s ease,
+        margin 2.5s ease;
+
+    opacity: 0;
+    margin-top: -40px;
+    height: 0;
+    padding: 0;
+    transform: scale(0.90);
+}
+
+#active-task-highlight {
+    position: fixed;
+    top: 251px;
+    left: 0;
+    width: 100vw;
+    height: 120px;
+    background-color: rgba(255, 0, 0, 0.08);
+    pointer-events: none;
+    box-sizing: border-box;
 }
