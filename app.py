@@ -25,13 +25,46 @@ tasks = {
     }
 }
 
+# Inventory data structure
+inventory = {
+    "CC-IV": {
+        "name": "IV supplies",
+        "quantity": 1,
+        "location": "Top"
+    },
+    "CC-AIRWAY": {
+        "name": "Airway supplies",
+        "quantity": 1,
+        "location": "Top"
+    },
+    "CC-EPI": {
+        "name": "Epinephrine",
+        "quantity": 2,
+        "location": "Drawer 1"
+    },
+    "CC-AMIO": {
+        "name": "Amiodarone",
+        "quantity": 2,
+        "location": "Drawer 2"
+    },
+    "CC-BICARB": {
+        "name": "Bicarbonate",
+        "quantity": 2,
+        "location": "Drawer 3"
+    }
+}
+
+
 interactions = []
 current_scenario = 0
 
-# Demo sensor states
+# Sensor states
 sensor_states = {
     'iv_removed': False,
-    'oxygen_removed': False
+    'oxygen_removed': False,
+    'epi_removed': False,
+    'amio_removed': False,
+    'bicarb_removed': False
 }
 
 # Serial connection between arduino and pressure sensors
@@ -40,31 +73,52 @@ serial_connection = None
 def find_arduino_port():
     """Find Arduino COM port"""
     return '/dev/cu.usbmodem101'
-
 def read_serial_data():
     """Read data from Arduino in background thread"""
     global serial_connection, sensor_states
+
     while True:
         try:
             if serial_connection and serial_connection.in_waiting > 0:
-                line = serial_connection.readline().decode('utf-8').strip()
-                print(f"Received: {line}")
-                
-                if line.startswith("SENSOR:"):
-                    # Parse sensor data
-                    parts = line.split(":")
-                    for part in parts[1:]:
-                        if "=" in part:
-                            key, value = part.split("=")
-                            if key == "IV":
-                                sensor_states['iv_removed'] = (value == "1")
-                            elif key == "OXYGEN":
-                                sensor_states['oxygen_removed'] = (value == "1")
-                            
-                    print(f"Updated sensor states: {sensor_states}")
+                line = serial_connection.readline().decode("utf-8", errors="ignore").strip()
+
+                if not line:
+                    continue
+
+                print("Received:", line)
+
+                if not line.startswith("SENSOR:"):
+                    continue
+
+                parts = line.replace("SENSOR:", "").split(":")
+
+                for part in parts:
+                    if "=" not in part:
+                        continue
+
+                    key, value = part.split("=", 1)
+
+                   
+                    if key == "IV":
+                        sensor_states["iv_removed"] = (value != "1")  # NOT present = removed
+
+                    elif key == "OXYGEN":
+                        sensor_states["oxygen_removed"] = (value != "1")
+
+                    elif key == "EPI":
+                        sensor_states["epi_removed"] = (value != "1")
+
+                    elif key == "AMIO":
+                        sensor_states["amio_removed"] = (value != "1")
+
+                    elif key == "BICARB":
+                        sensor_states["bicarb_removed"] = (value != "1")
+
+                print("Updated sensor states (inverted logic):", sensor_states)
+
         except Exception as e:
-            print(f"Serial read error: {e}")
-            time.sleep(1)
+            print("Serial read error:", e)
+            time.sleep(0.5)
 
 def init_serial():
     """Initialize serial connection to Arduino"""
@@ -95,60 +149,43 @@ def get_sensor_status():
     })
 
 # Route to check and update tasks based on sensors
-@app.route('/check_tasks_from_sensors', methods=['GET'])
+@app.route("/check_tasks_from_sensors")
 def check_tasks_from_sensors():
-    """Check and update tasks based on sensor states"""
-    global current_scenario, tasks, sensor_states
-    
-    if current_scenario != 0:  # Only for Asystole for now
-        return jsonify({'success': False, 'message': 'Not in Asystole scenario'})
-    
     updated_tasks = []
-    
-    # Check IV task
-    if sensor_states['iv_removed']:
-        # Check if "Place IV #1" in Medications is not already completed
-        if 'Medications' in tasks[0]:
-            med_tasks = tasks[0]['Medications']
-            for i, (task_name, _) in enumerate(med_tasks['steps']):
-                if task_name == 'Place IV #1' and i >= med_tasks['count']:
-                    # Mark as completed
-                    med_tasks['count'] = i + 1
-                    updated_tasks.append({
-                        'category': 'Medications',
-                        'task': task_name,
-                        'index': i
-                    })
-                    
-                    # Record interaction
-                    timestamp = datetime.now().strftime("%m/%d/%Y %H:%M:%S")
-                    interactions.append([f"[Asystole] Medications - Completed: {task_name} (via sensor)", timestamp])
-                break
-    
-    # Check Oxygen task
-    if sensor_states['oxygen_removed']:
-        # Check if "Place Oxygen" in Airways is not already completed
-        if 'Airways' in tasks[0]:
-            airway_tasks = tasks[0]['Airways']
-            for i, (task_name, _) in enumerate(airway_tasks['steps']):
-                if task_name == 'Place Oxygen' and i >= airway_tasks['count']:
-                    # Mark as completed
-                    airway_tasks['count'] = i + 1
-                    updated_tasks.append({
-                        'category': 'Airways',
-                        'task': task_name,
-                        'index': i
-                    })
-                    
-                    # Record interaction
-                    timestamp = datetime.now().strftime("%m/%d/%Y %H:%M:%S")
-                    interactions.append([f"[Asystole] Airways - Completed: {task_name} (via sensor)", timestamp])
-                break
-    
+
+    if sensor_states["iv_removed"]:
+        updated_tasks.append({
+            "category": "Medications",
+            "task": "Place IV #1"
+        })
+
+    if sensor_states["oxygen_removed"]:
+        updated_tasks.append({
+            "category": "Airways",
+            "task": "Place Oxygen"
+        })
+
+    if sensor_states["epi_removed"]:
+        updated_tasks.append({
+            "category": "Medications",
+            "task": "Give Epi"
+        })
+
+    if sensor_states["amio_removed"]:
+        updated_tasks.append({
+            "category": "Medications",
+            "task": "Give Amiodarone"
+        })
+
+    if sensor_states["bicarb_removed"]:
+        updated_tasks.append({
+            "category": "Medications",
+            "task": "Give Bicarbonate"
+        })
+
     return jsonify({
-        'success': True,
-        'updated_tasks': updated_tasks,
-        'sensor_states': sensor_states
+        "updated_tasks": updated_tasks,
+        "sensor_states": sensor_states
     })
 
 @app.route('/')
@@ -361,8 +398,7 @@ def close_window():
 
 @app.route('/inventory')
 def inventory_page():
-    # return '<img src="/static/images/inventory.png" alt="Inventory">'
-    return render_template('inventory.html')
+    return render_template("inventory.html", inventory=inventory)
 
 @app.route('/download_page')
 def download_page():
@@ -438,6 +474,36 @@ def record_task_completion():
         
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 500
+    
+
+@app.route("/scan_item", methods=["POST"])
+def scan_item():
+    data = request.json
+    barcode = data.get("barcode")
+    action = data.get("action", "remove")  # remove or add
+
+    if barcode not in inventory:
+        return jsonify({"success": False, "error": "Unknown barcode"})
+
+    if action == "remove":
+        if inventory[barcode]["quantity"] > 0:
+            inventory[barcode]["quantity"] -= 1
+        else:
+            return jsonify({"success": False, "error": "Out of stock"})
+    else:
+        inventory[barcode]["quantity"] += 1
+
+
+
+    return jsonify({
+        "success": True,
+        "item": inventory[barcode]["name"],
+        "quantity": inventory[barcode]["quantity"],
+        "barcode": barcode,
+        "sku": barcode
+    })
+
+
 
 if __name__ == '__main__':
     # Initialize serial connection

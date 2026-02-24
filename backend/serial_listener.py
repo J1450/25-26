@@ -10,7 +10,7 @@ class ArduinoController:
         
         self.arduino = None
         
-        # Status label - CREATE THIS FIRST!
+        # Status label
         self.status_label = tk.Label(root, text="Connecting...", fg="blue", font=("Arial", 10))
         self.status_label.pack(pady=10)
         

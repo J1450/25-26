@@ -18,6 +18,9 @@
 <body>
 
     <div style="padding: 50px; overflow-x: auto;">
+        <input type="text" id="barcodeInput" autofocus
+            style="width: 200px; height: 30px; font-size: 16px; margin-bottom: 20px;" placeholder="Scan barcode here">
+
 
         <table border="1" cellspacing="0" cellpadding="8" width="100%">
             <thead>
@@ -33,15 +36,8 @@
 
             <tbody>
                 <tr class="row-top">
-                    <td class="location-top" rowspan="2">Top</td>
-                    <td>IV supplies</td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                </tr>
-                <tr class="row-top">
-                    <td>Airway supplies</td>
+                    <td class="location-top">Top</td>
+                    <td>N/A</td>
                     <td></td>
                     <td></td>
                     <td></td>
@@ -49,44 +45,142 @@
                 </tr>
 
                 <tr class="row-drawer-1">
-                    <td class="location-drawer-1">Drawer 1</td>
-                    <td>Epinephrine</td>
+                    <td class="location-drawer-1" rowspan="2">Drawer 1</td>
+                    <td>IV supplies</td>
+                    <td id="ivQty">{{ inventory["CC-IV"]["quantity"] }}</td>
+                    <td>CC-IV</td>
+                    <td>$100</td>
                     <td></td>
-                    <td></td>
-                    <td></td>
+                </tr>
+
+                <tr class="row-drawer-1">
+                    <td>Airway supplies</td>
+                    <td id="airwayQty">{{ inventory["CC-AIRWAY"]["quantity"] }}</td>
+                    <td>CC-AIRWAY</td>
+                    <td>$75</td>
                     <td></td>
                 </tr>
 
                 <tr class="row-drawer-2">
                     <td class="location-drawer-2">Drawer 2</td>
-                    <td>Amiodarone</td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
+                    <td>Epinephrine</td>
+                    <td id="epiQty">{{ inventory["CC-EPI"]["quantity"] }}</td>
+                    <td>CC-EPI</td>
+                    <td>$5</td>
                     <td></td>
                 </tr>
 
                 <tr class="row-drawer-3">
                     <td class="location-drawer-3">Drawer 3</td>
-                    <td>Biocarbonate</td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
+                    <td>Amiodarone</td>
+                    <td id="amiQty">{{ inventory["CC-AMIO"]["quantity"] }}</td>
+                    <td>CC-AMIO</td>
+                    <td>$10</td>
                     <td></td>
                 </tr>
 
                 <tr class="row-drawer-4">
                     <td class="location-drawer-4">Drawer 4</td>
-                    <td>Storage</td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
+                    <td>Bicarbonate</td>
+                    <td id="bicarbQty">{{ inventory["CC-BICARB"]["quantity"] }}</td>
+                    <td>CC-BICARB</td>
+                    <td>$20CC-IV
+
+                    </td>
                     <td></td>
                 </tr>
             </tbody>
         </table>
 
     </div>
+    <script>
+        // Inventory page barcode scanner - standalone JavaScript (no jQuery needed)
+        document.addEventListener('DOMContentLoaded', function () {
+            console.log('Inventory page loaded, initializing scanner...');
+
+            const barcodeInput = document.getElementById('barcodeInput');
+
+            if (barcodeInput) {
+                barcodeInput.focus();
+
+                const inventoryMap = {
+                    "CC-IV": "ivQty",
+                    "CC-AIRWAY": "airwayQty",
+                    "CC-EPI": "epiQty",
+                    "CC-AMIO": "amiQty",
+                    "CC-BICARB": "bicarbQty"
+                };
+
+                // Log the initial quantities
+                console.log('Initial quantities:', {
+                    iv: document.getElementById('ivQty')?.textContent,
+                    airway: document.getElementById('airwayQty')?.textContent,
+                    epi: document.getElementById('epiQty')?.textContent,
+                    ami: document.getElementById('amiQty')?.textContent,
+                    bicarb: document.getElementById('bicarbQty')?.textContent
+                });
+
+                barcodeInput.addEventListener('keydown', function (e) {
+                    if (e.key === 'Enter') {
+                        const code = barcodeInput.value.trim();
+
+                        if (inventoryMap[code]) {
+
+                            fetch('/scan_item', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    barcode: code,
+                                    action: 'add'
+                                })
+                            })
+                                .then(res => {
+                                    return res.json();
+                                })
+                                .then(data => {
+
+                                    if (data.success) {
+                                        const elementId = inventoryMap[data.barcode];
+                                        const qtyCell = document.getElementById(elementId);
+
+                                        if (qtyCell) {
+                                            qtyCell.textContent = data.quantity;
+
+                                            // Visual feedback
+                                            qtyCell.style.backgroundColor = '#90EE90';
+                                            qtyCell.style.transition = 'background-color 0.5s';
+                                            setTimeout(() => {
+                                                qtyCell.style.backgroundColor = '';
+                                            }, 500);
+                                        }
+
+                                        // Clear input for next scan
+                                        barcodeInput.value = '';
+                                        barcodeInput.focus();
+                                    } else {
+                                        alert(data.error || 'Error updating inventory');
+                                        barcodeInput.value = '';
+                                        barcodeInput.focus();
+                                    }
+                                })
+                                .catch(error => {
+                                    console.error('Fetch error:', error);
+                                    barcodeInput.value = '';
+                                    barcodeInput.focus();
+                                });
+                        } else {
+                            alert('Unknown barcode: ' + code);
+                            barcodeInput.value = '';
+                            barcodeInput.focus();
+                        }
+                    }
+                });
+
+                barcodeInput.addEventListener('input', function (e) {
+                });
+            }
+        });
+    </script>
 
 </body>
 

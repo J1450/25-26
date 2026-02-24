@@ -152,12 +152,9 @@ $(document).ready(function () {
         updateCPRStatus();
         startElapsedTimer();
 
-        floatTaskContainerToMiddle();
+        // Start polling sensor status
+        startSensorPolling();
 
-        // Start polling sensor status for Asystole scenario CHANGE
-        if (currentScenario === 0) {
-            startSensorPolling();
-        }
     }
 
     function startSensorPolling() {
@@ -171,23 +168,35 @@ $(document).ready(function () {
     }
 
     function pollSensorStatus() {
-        if (currentScenario !== 0) return;
+        console.log('Polling sensors...');
 
         $.ajax({
             url: '/check_tasks_from_sensors',
             type: 'GET',
-            success(response) {
-                if (response.updated_tasks?.length) {
-                    response.updated_tasks.forEach(task =>
-                        updateCheckboxFromSensor(task.category, task.task)
-                    );
+            success: function (response) {
+                console.log('Sensor response received:', response);
+
+                // Log what tasks we got back
+                if (response.updated_tasks && response.updated_tasks.length) {
+                    console.log(`Received ${response.updated_tasks.length} task updates from sensors:`);
+                    response.updated_tasks.forEach(function (task, index) {
+                        console.log(`   ${index + 1}. ${task.category} - "${task.task}"`);
+                    });
+
+                    response.updated_tasks.forEach(function (task) {
+                        console.log(`Attempting to update: ${task.category} - "${task.task}"`);
+                        updateCheckboxFromSensor(task.category, task.task);
+                    });
+                } else {
+                    console.log('No task updates from sensors');
                 }
 
                 if (response.sensor_states) {
+                    console.log('Sensor states:', response.sensor_states);
                     updateSensorUI(response.sensor_states);
                 }
             },
-            error(err) {
+            error: function (err) {
                 console.error('Sensor polling failed:', err);
             }
         });
@@ -197,39 +206,63 @@ $(document).ready(function () {
         TASK UPDATES
     */
     function updateCheckboxFromSensor(category, taskName) {
-        // Find the task element and mark it as completed
-        const taskContainers = {
-            'Medications': 'medications-tasks',
-            'Compressions': 'compressions-tasks',
-            'Airways': 'airways-tasks'
-        };
+        console.log(`Attempting to update ${category} - "${taskName}"`);
 
-        const containerId = taskContainers[category];
-        if (!containerId) return;
+        const taskItems = document.querySelectorAll('.task-item');
+        let found = false;
 
-        const container = document.getElementById(containerId);
-        if (!container) return;
-
-        const taskItems = container.getElementsByClassName('task-item');
-        for (let taskItem of taskItems) {
+        taskItems.forEach(taskItem => {
             const taskText = taskItem.textContent.replace('✓', '').trim();
+
+            // Simple direct comparison first
             if (taskText === taskName) {
-                const checkbox = taskItem.querySelector('.checkbox');
-                if (!checkbox.classList.contains('checked')) {
-                    checkbox.classList.add('checked');
-                    checkbox.innerHTML = '✓';
-                    taskItem.classList.add('completed');
-
-                    floatOutAndRemoveTask(taskItem);
-
-                    // Also record the task completion
-                    recordTaskCompletion(category, taskName);
-
-                    console.log(`Auto-checked ${taskName} from sensor`);
-                }
-                break;
+                console.log(`✓ Exact match: "${taskText}"`);
+                found = markTaskCompleted(taskItem, category, taskText);
             }
+            // Then try contains matching for flexibility
+            else if (taskText.includes(taskName) || taskName.includes(taskText)) {
+                console.log(`✓ Partial match: "${taskText}" contains/in "${taskName}"`);
+                found = markTaskCompleted(taskItem, category, taskText);
+            }
+            // Special cases
+            else if (taskName === 'Place IV #1' && taskText.includes('IV')) {
+                console.log(`✓ Special match: IV task`);
+                found = markTaskCompleted(taskItem, category, taskText);
+            }
+            else if (taskName === 'Place Oxygen' && taskText.includes('Oxygen')) {
+                console.log(`✓ Special match: Oxygen task`);
+                found = markTaskCompleted(taskItem, category, taskText);
+            }
+        });
+
+        if (!found) {
+            console.log(`❌ No matching task found for "${taskName}"`);
+            // Debug: list all available tasks
+            console.log('Available tasks:', Array.from(taskItems).map(t => t.textContent.replace('✓', '').trim()));
         }
+    }
+
+    // Helper function to mark task as completed
+    function markTaskCompleted(taskItem, category, taskText) {
+        const checkbox = taskItem.querySelector('.checkbox');
+        if (!checkbox.classList.contains('checked')) {
+            checkbox.classList.add('checked');
+            checkbox.innerHTML = '✓';
+            taskItem.classList.add('completed');
+
+            // Add visual feedback
+            taskItem.style.backgroundColor = '#d4edda';
+            taskItem.style.borderLeft = '5px solid #28a745';
+
+            // Float out after a short delay
+            setTimeout(() => {
+                floatOutAndRemoveTask(taskItem);
+            }, 500);
+
+            recordTaskCompletion(category, taskText);
+            return true;
+        }
+        return false;
     }
 
     function toggleTaskCompletion(taskElement) {
