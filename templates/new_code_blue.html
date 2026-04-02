@@ -62,6 +62,7 @@
     <div class="rowcontainer">
         <!-- Medications -->
         <div class="task-container" id="medications-tasks">
+            <div class="column-header">RN #1</div>
             {% if tasks and 'Medications' in tasks %}
             {% for step in tasks['Medications']['steps'] %}
             <div class="task-item" data-step="{{ step[1] }}">
@@ -75,6 +76,7 @@
 
         <!-- Compressions -->
         <div class="task-container" id="compressions-tasks">
+            <div class="column-header">Provider #1</div>
             {% if tasks and 'Compressions' in tasks %}
             {% for step in tasks['Compressions']['steps'] %}
             <div class="task-item" data-step="{{ step[1] }}">
@@ -87,6 +89,7 @@
 
         <!-- Airways -->
         <div class="task-container" id="airways-tasks">
+            <div class="column-header">Provider #2</div>
             {% if tasks and 'Airways' in tasks %}
             {% for step in tasks['Airways']['steps'] %}
             <div class="task-item" data-step="{{ step[1] }}">
@@ -107,7 +110,6 @@
         <div class="timer-display" id="elapsed-timer">00:00</div>
     </footer>
     <script type="text/javascript" src="{{ url_for('static', filename='js/new_app.js') }}"></script>
-</body>
 </body>
 <div id="active-task-highlight"></div>
 

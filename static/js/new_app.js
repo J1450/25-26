@@ -118,6 +118,7 @@ $(document).ready(function () {
 
 
             if (changed) {
+                sendStateToArduino(scenario);
                 // Reload page if answer changed
                 setTimeout(() => {
                     window.location.href = `/start_code?scenario=${scenario}`;
@@ -155,6 +156,23 @@ $(document).ready(function () {
         // Start polling sensor status
         startSensorPolling();
 
+    }
+
+    function sendStateToArduino(scenario) {
+        console.log(`Sending state ${scenario} to Arduino`);
+
+        $.ajax({
+            url: '/send_state_to_arduino',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ scenario: scenario }),
+            success: function (response) {
+                console.log('State sent to Arduino successfully:', response);
+            },
+            error: function (err) {
+                console.error('Failed to send state to Arduino:', err);
+            }
+        });
     }
 
     function startSensorPolling() {
@@ -236,7 +254,7 @@ $(document).ready(function () {
         });
 
         if (!found) {
-            console.log(`❌ No matching task found for "${taskName}"`);
+            console.log(`No matching task found for "${taskName}"`);
             // Debug: list all available tasks
             console.log('Available tasks:', Array.from(taskItems).map(t => t.textContent.replace('✓', '').trim()));
         }
@@ -445,8 +463,10 @@ $(document).ready(function () {
 
     // Handle scenario changes from questions
     window.handleScenarioChange = function (newScenario) {
+
         console.log('Changing to scenario:', newScenario);
         currentScenario = newScenario;
+        sendStateToArduino(newScenario);
 
         // Reload the page with the new scenario
         window.location.href = `/start_code?scenario=${newScenario}`;

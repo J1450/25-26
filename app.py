@@ -16,7 +16,7 @@ tasks = {
     1: {
         'Medications': {'count': 0, 'steps': [('Give Epi', 15), ('Give Amiodarone', 10)]},
         'Compressions': {'count': 0, 'steps': [('Shock', 20)]},
-        'Airways': {'count': 0, 'steps': [('Listen to lungs', 20), ('Place IV #2', 15)]}
+        'Airways': {'count': 0, 'steps': [('Listen to lungs', 20)]}
     },
     2: {
         'Medications': {'count': 0, 'steps': [('Give Bicarbonate', 10), ('EKG', 20)]},
@@ -24,6 +24,7 @@ tasks = {
         'Airways': {'count': 0, 'steps': [('Listen to lungs', 20), ('Call ICU', 15), ('Consult cardiology', 10)]}
     }
 }
+
 
 # Inventory data structure
 inventory = {
@@ -152,36 +153,25 @@ def get_sensor_status():
 @app.route("/check_tasks_from_sensors")
 def check_tasks_from_sensors():
     updated_tasks = []
+    scenario_task_map = {
+        0: [  # Asystole
+            ("iv_removed",    "Medications", "Place IV #1"),
+            ("oxygen_removed","Airways",     "Place Oxygen"),
+            ("epi_removed",   "Medications", "Give Epi"),
+        ],
+        1: [  # VFib
+            ("epi_removed",   "Medications", "Give Epi"),
+            ("amio_removed",  "Medications", "Give Amiodarone"),
+        ],
+        2: [  # Normal Sinus
+            ("bicarb_removed","Medications", "Give Bicarbonate"),
+        ]
+    }
 
-    if sensor_states["iv_removed"]:
-        updated_tasks.append({
-            "category": "Medications",
-            "task": "Place IV #1"
-        })
-
-    if sensor_states["oxygen_removed"]:
-        updated_tasks.append({
-            "category": "Airways",
-            "task": "Place Oxygen"
-        })
-
-    if sensor_states["epi_removed"]:
-        updated_tasks.append({
-            "category": "Medications",
-            "task": "Give Epi"
-        })
-
-    if sensor_states["amio_removed"]:
-        updated_tasks.append({
-            "category": "Medications",
-            "task": "Give Amiodarone"
-        })
-
-    if sensor_states["bicarb_removed"]:
-        updated_tasks.append({
-            "category": "Medications",
-            "task": "Give Bicarbonate"
-        })
+    relevant = scenario_task_map.get(current_scenario, [])
+    for sensor_key, category, task_name in relevant:
+        if sensor_states[sensor_key]:
+            updated_tasks.append({"category": category, "task": task_name})
 
     return jsonify({
         "updated_tasks": updated_tasks,
@@ -199,6 +189,15 @@ def start_code():
         initial_scenario = int(request.args.get('scenario', '0'))
         current_scenario = initial_scenario
         interactions = [] 
+
+        # Send state to Arduino
+        if serial_connection and serial_connection.is_open:
+            try:
+                command = f"STATE:{initial_scenario}\n"
+                serial_connection.write(command.encode())
+                print(f"Sent initial state {initial_scenario} to Arduino")
+            except Exception as e:
+                print(f"Failed to send state to Arduino: {e}")
         
         # Reset task counts for the selected scenario
         if initial_scenario in tasks:
@@ -503,7 +502,21 @@ def scan_item():
         "sku": barcode
     })
 
-
+@app.route('/send_state_to_arduino', methods=['POST'])
+def send_state_to_arduino():
+    try:
+        data = request.get_json()
+        scenario = data.get('scenario')
+        
+        if scenario is not None and serial_connection and serial_connection.is_open:
+            command = f"STATE:{scenario}\n"
+            serial_connection.write(command.encode())
+            print(f"Sent state {scenario} to Arduino")
+            return jsonify({'success': True, 'state': scenario})
+        else:
+            return jsonify({'success': False, 'message': 'No serial connection'}), 500
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
 
 if __name__ == '__main__':
     # Initialize serial connection
