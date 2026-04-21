@@ -26,6 +26,14 @@
 // A14 is Inventory Sensor 1 - D4 - Bicarbonate1
 // A15 is Inventory Sensor 2 - D4 - Bicarbonate2
 
+#include <FastLED.h>
+#define LED_PIN 6
+#define NUM_LEDS 300
+#define BRIGHTNESS 50
+#define LED_TYPE WS2812B
+#define COLOR_ORDER GRB
+CRGB leds[NUM_LEDS];
+
 // Clock PIN
 const uint8_t PIN_CLOCK = 4;
 
@@ -56,6 +64,8 @@ bool latched_bic2 = false;
 void setup()
 {
     Serial.begin(9600);
+    FastLED.addLeds<LED_TYPE, LED_PIN, COLOR_ORDER>(leds, NUM_LEDS);
+    FastLED.setBrightness(BRIGHTNESS);
 
     // Clock Control
     pinMode(PIN_CLOCK, OUTPUT);
@@ -237,6 +247,7 @@ void loop()
             digitalWrite(PIN_CLOCK, clockLevel ? HIGH : LOW);
             lastToggle = now;
         }
+        strobeRedCPR();
     }
     else if (currentState == 1)
     { // VFIB
@@ -261,6 +272,7 @@ void loop()
             digitalWrite(PIN_CLOCK, clockLevel ? HIGH : LOW);
             lastToggle = now;
         }
+        strobeRedCPR();
     }
     else if (currentState == 2)
     { // NORMAL SINUS
@@ -302,4 +314,12 @@ void loop()
 
         lastSend = millis();
     }
+}
+void strobeRedCPR()
+{
+    unsigned long now = millis();
+    float phase = fmod((float)now, 500.0f) / 500.0f;
+    uint8_t v = (phase < 0.4f) ? (uint8_t)(255 * sin(M_PI * phase / 0.4f)) : 0;
+    fill_solid(leds, NUM_LEDS, CRGB(v, 0, 0));
+    FastLED.show();
 }

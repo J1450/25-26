@@ -73,7 +73,7 @@ serial_connection = None
 
 def find_arduino_port():
     """Find Arduino COM port"""
-    return '/dev/cu.usbmodem101'
+    return '/dev/cu.usbmodem1401'
 def read_serial_data():
     """Read data from Arduino in background thread"""
     global serial_connection, sensor_states
