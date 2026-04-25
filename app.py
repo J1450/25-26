@@ -3,6 +3,7 @@ from datetime import datetime
 import threading
 import serial
 import time
+import serial.tools.list_ports
 
 app = Flask(__name__)
 
@@ -72,8 +73,13 @@ sensor_states = {
 serial_connection = None
 
 def find_arduino_port():
-    """Find Arduino COM port"""
-    return '/dev/ttyACM0'
+    ports = serial.tools.list_ports.comports()
+    for port in ports:
+        if ("Arduino" in port.description or 
+            "ttyACM" in port.device or 
+            "usbmodem" in port.device):
+            return port.device
+    return None
 def read_serial_data():
     """Read data from Arduino in background thread"""
     global serial_connection, sensor_states

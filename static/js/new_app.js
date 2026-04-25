@@ -39,7 +39,7 @@ $(document).ready(function () {
             "transitionend",
             () => {
                 taskEl.remove();
-                checkAllTasksCompleted();
+                // checkAllTasksCompleted();
             },
             { once: true }
         );
@@ -140,6 +140,8 @@ $(document).ready(function () {
 
     function initializePage() {
         console.log('Initializing page with scenario:', currentScenario);
+
+        sendStateToArduino(currentScenario);
 
         // Task click handlers
         document.querySelectorAll('.task-item').forEach(task => {

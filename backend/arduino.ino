@@ -29,7 +29,7 @@
 #include <FastLED.h>
 #define LED_PIN 6
 #define NUM_LEDS 300
-#define BRIGHTNESS 50
+#define BRIGHTNESS 20
 #define LED_TYPE WS2812B
 #define COLOR_ORDER GRB
 CRGB leds[NUM_LEDS];
@@ -167,7 +167,7 @@ void loop()
     if (sensor_bic2)
         latched_bic2 = true;
 
-    // --- STATE LOGIC (Matches Flask mapping) ---
+    // --- STATE LOGIC ---
     if (currentState == 3)
     { // INVENTORY (default)
 
@@ -184,7 +184,7 @@ void loop()
         }
 
         // Drawer 2 - Blue if both present, else Red
-        if ((sensor_epi1) && (sensor_epi2))
+        if ((sensor_epi1) || (sensor_epi2))
         {
             digitalWrite(A4, HIGH);
             digitalWrite(A5, LOW);
@@ -196,7 +196,7 @@ void loop()
         }
 
         // Drawer 3 - Blue if both present, else Red
-        if ((sensor_ami1) && (sensor_ami2))
+        if ((sensor_ami1) || (sensor_ami2))
         {
             digitalWrite(A8, HIGH);
             digitalWrite(A9, LOW);
@@ -208,7 +208,7 @@ void loop()
         }
 
         // Drawer 4 - Blue if both present, else Red
-        if ((sensor_bic1) && (sensor_bic2))
+        if ((sensor_bic1) || (sensor_bic2))
         {
             digitalWrite(A12, HIGH);
             digitalWrite(A13, LOW);
@@ -320,6 +320,6 @@ void strobeRedCPR()
     unsigned long now = millis();
     float phase = fmod((float)now, 500.0f) / 500.0f;
     uint8_t v = (phase < 0.4f) ? (uint8_t)(255 * sin(M_PI * phase / 0.4f)) : 0;
-    fill_solid(leds, NUM_LEDS, CRGB(v, 0, 0));
+    fill_solid(leds, NUM_LEDS, CRGB(v, v, v));
     FastLED.show();
 }
