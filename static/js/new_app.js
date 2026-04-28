@@ -3,7 +3,8 @@ $(document).ready(function () {
         GLOBAL STATE
     */
 
-    let currentScenario = window.currentScenario || 0;
+    const urlParams = new URLSearchParams(window.location.search);
+    let currentScenario = parseInt(urlParams.get('scenario') ?? window.currentScenario ?? 0);
     let taskTimers = {};
     let startTime;
     let elapsedTimer;
@@ -122,7 +123,7 @@ $(document).ready(function () {
                 // Reload page if answer changed
                 setTimeout(() => {
                     window.location.href = `/start_code?scenario=${scenario}`;
-                }, 500);
+                }, 800);
             } else {
                 // Keep page as is, remove popup
                 const container = document.getElementById('questions-container');
@@ -141,8 +142,20 @@ $(document).ready(function () {
     function initializePage() {
         console.log('Initializing page with scenario:', currentScenario);
 
-        sendStateToArduino(currentScenario);
-
+        // Only send state to Arduino if we're on the start_code page
+        if (window.location.pathname.includes('start_code')) {
+            sendStateToArduino(currentScenario);
+        } else {
+            // On index page, send inventory state
+            sendStateToArduino(3);
+        }
+        // Only send state to Arduino if we're on the start_code page
+        if (window.location.pathname.includes('start_code')) {
+            sendStateToArduino(currentScenario);
+        } else {
+            // On index page, send inventory state
+            sendStateToArduino(3);
+        }
         // Task click handlers
         document.querySelectorAll('.task-item').forEach(task => {
             task.addEventListener('click', function () {

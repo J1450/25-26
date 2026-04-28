@@ -128,7 +128,6 @@ def read_serial_data():
             time.sleep(0.5)
 
 def init_serial():
-    """Initialize serial connection to Arduino"""
     global serial_connection
     try:
         port = find_arduino_port()
@@ -137,14 +136,15 @@ def init_serial():
             time.sleep(2)
             print(f"Connected to Arduino on {port}")
             
-            # Start serial reading thread
+            # Send inventory state on startup
+            serial_connection.write(b"STATE:3\n")
+            
             thread = threading.Thread(target=read_serial_data, daemon=True)
             thread.start()
             return True
     except Exception as e:
         print(f"Failed to connect to Arduino: {e}")
     return False
-
 # Route for sensor updates
 @app.route('/get_sensor_status', methods=['GET'])
 def get_sensor_status():
