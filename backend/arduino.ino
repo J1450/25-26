@@ -287,7 +287,7 @@ void loop()
         digitalWrite(A1, LOW);
         digitalWrite(A5, LOW);
         digitalWrite(A9, LOW);
-        digitalWrite(A13, ((sensor_bic1) && (sensor_bic2)) ? HIGH : LOW);
+        digitalWrite(A13, ((sensor_bic1)) ? HIGH : LOW);
 
         // No clock
         clockLevel = false;
