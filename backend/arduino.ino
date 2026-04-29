@@ -259,7 +259,7 @@ void loop()
         digitalWrite(A12, LOW); // Drawer 4 Blue OFF
 
         // Red LEDs logic
-        digitalWrite(A1, sensor_iv ? HIGH : LOW);
+        digitalWrite(A1, LOW);
         digitalWrite(A5, ((sensor_epi1) && (sensor_epi2)) ? HIGH : LOW);
         digitalWrite(A9, ((sensor_ami1) && (sensor_ami2)) ? HIGH : LOW);
         digitalWrite(A13, LOW);
