@@ -253,7 +253,7 @@ void loop()
     { // VFIB
 
         // Blue LEDs - Drawers 1, 2, and 3 ON
-        digitalWrite(A0, HIGH); // Drawer 1 Blue ON
+        digitalWrite(A0, LOW);  // Drawer 1 Blue OFF
         digitalWrite(A4, HIGH); // Drawer 2 Blue ON
         digitalWrite(A8, HIGH); // Drawer 3 Blue ON
         digitalWrite(A12, LOW); // Drawer 4 Blue OFF
@@ -305,9 +305,9 @@ void loop()
         Serial.print(":OXYGEN=");
         Serial.print(sensor_air ? "1" : "0");
         Serial.print(":EPI=");
-        Serial.print(sensor_epi1 ? "1" : "0");
+        Serial.print((sensor_epi1 && sensor_epi2) ? "1" : "0");
         Serial.print(":AMIO=");
-        Serial.print(sensor_ami1 ? "1" : "0");
+        Serial.print((sensor_ami1 && sensor_ami2) ? "1" : "0");
         Serial.print(":BICARB=");
         Serial.print(sensor_bic1 ? "1" : "0");
         Serial.println();
